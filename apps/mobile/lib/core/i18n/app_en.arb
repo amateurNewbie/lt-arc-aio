@@ -1,0 +1,15 @@
+{
+  "@@locale": "en",
+  "appTitle": "LT ARC",
+  "navDashboard": "Overview",
+  "navProjects": "Projects",
+  "navTasks": "Tasks",
+  "navLeads": "Clients",
+  "loginTitle": "Sign in",
+  "loginTag": "Architecture & Interior Design",
+  "email": "Email",
+  "password": "Password",
+  "loginButton": "Sign in",
+  "loginError": "Invalid email or password",
+  "loginLocked": "Account temporarily locked, try again later"
+}

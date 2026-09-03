@@ -1,0 +1,15 @@
+{
+  "@@locale": "vi",
+  "appTitle": "LT ARC",
+  "navDashboard": "Tổng quan",
+  "navProjects": "Dự án",
+  "navTasks": "Công việc",
+  "navLeads": "Khách hàng",
+  "loginTitle": "Đăng nhập",
+  "loginTag": "Thiết kế Kiến trúc & Nội thất",
+  "email": "Email",
+  "password": "Mật khẩu",
+  "loginButton": "Đăng nhập",
+  "loginError": "Email hoặc mật khẩu không đúng",
+  "loginLocked": "Tài khoản tạm khoá, vui lòng thử lại sau"
+}

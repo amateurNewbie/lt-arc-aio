@@ -1,0 +1,4 @@
+arb-dir: lib/core/i18n
+template-arb-file: app_vi.arb
+output-localization-file: app_localizations.dart
+untranslated-messages-file: untranslated.txt

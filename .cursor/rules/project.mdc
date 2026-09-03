@@ -1,0 +1,28 @@
+---
+description: Core stack and workflow for ARC AIO
+alwaysApply: true
+---
+
+# ARC AIO
+
+- FE: Flutter (Web, Android; iOS needs macOS later).
+- BE: FastAPI on Python 3.12.
+- DB: PostgreSQL.
+- User: DOJI. Prefer coding in the repo over long explanations.
+
+## Layout (target)
+
+```
+apps/mobile/     # Flutter
+apps/api/        # FastAPI
+```
+
+Do not invent extra top-level folders unless asked.
+
+## Defaults
+
+- Do not commit unless asked.
+- Do not change git config.
+- Secrets stay in `.env`; never commit credentials.
+- Windows host: Flutter Web + Android OK. Do not assume iOS can build here.
+- Prefer `uv` for Python deps when a backend exists.

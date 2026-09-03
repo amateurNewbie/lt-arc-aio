@@ -1,0 +1,64 @@
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../../auth/application/auth_provider.dart';
+import '../data/lead_repository.dart';
+
+part 'lead_provider.g.dart';
+
+@riverpod
+LeadRepository leadRepository(Ref ref) => LeadRepository(ref.watch(apiClientProvider));
+
+@riverpod
+class LeadFilter extends _$LeadFilter {
+  @override
+  ({LeadStatus? status, String search}) build() => (status: null, search: '');
+
+  void setStatus(LeadStatus? status) => state = (status: status, search: state.search);
+
+  void setSearch(String search) => state = (status: state.status, search: search);
+}
+
+@riverpod
+Future<List<Lead>> leadList(Ref ref) {
+  final filter = ref.watch(leadFilterProvider);
+  return ref.watch(leadRepositoryProvider).list(status: filter.status, search: filter.search);
+}
+
+@riverpod
+class LeadActions extends _$LeadActions {
+  @override
+  void build() {}
+
+  Future<Lead> create({
+    required String name,
+    String? phone,
+    String? email,
+    String? need,
+    int? budgetEstimate,
+    String? source,
+  }) async {
+    final lead = await ref.read(leadRepositoryProvider).create(
+          name: name,
+          phone: phone,
+          email: email,
+          need: need,
+          budgetEstimate: budgetEstimate,
+          source: source,
+        );
+    ref.invalidate(leadListProvider);
+    return lead;
+  }
+
+  Future<void> updateStatus(String leadId, LeadStatus status) async {
+    await ref.read(leadRepositoryProvider).updateStatus(leadId, status);
+    ref.invalidate(leadListProvider);
+  }
+
+  Future<String> convertToProject(String leadId, {required String category, required String managerId}) async {
+    final projectId = await ref
+        .read(leadRepositoryProvider)
+        .convertToProject(leadId, category: category, managerId: managerId);
+    ref.invalidate(leadListProvider);
+    return projectId;
+  }
+}

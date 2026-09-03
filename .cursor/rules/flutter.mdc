@@ -1,0 +1,15 @@
+---
+description: Flutter and Dart conventions for the frontend
+globs: "**/{pubspec.yaml,*.dart,*.arb}"
+alwaysApply: false
+---
+
+# Flutter
+
+- Use Flutter 3.47+ / Dart 3.13 patterns already on this machine.
+- Prefer `flutter create` / existing package layout over custom trees.
+- UI: widgets + named constructors; extract widgets instead of giant `build`.
+- State: Riverpod (chosen). See `flutter-riverpod` skill for provider conventions. Do not layer Bloc/GetX/Provider package on top.
+- Talk to FastAPI via a small API client (Dio or `http`), base URL from config/env — not hardcoded production hosts.
+- Android emulator: use `10.0.2.2` to reach host `localhost`. Chrome/web: `http://127.0.0.1:<port>`.
+- Run `flutter analyze` after non-trivial Dart changes.

@@ -1,0 +1,14 @@
+---
+description: PostgreSQL and migration conventions
+globs: "**/{*.sql,alembic.ini,alembic/**}"
+alwaysApply: false
+---
+
+# PostgreSQL
+
+- Local default: `localhost:5432`, user `postgres`, DB name TBD in `.env`.
+- ORM: SQLModel (chosen), async engine via `sqlmodel.ext.asyncio.session.AsyncSession`. See `sqlmodel-fastapi` skill.
+- Use migrations (Alembic against SQLModel metadata), not "create tables on startup" in production code.
+- Prefer explicit column types and `NOT NULL` where required.
+- Index foreign keys and frequent filters.
+- Do not dump credentials in SQL files.

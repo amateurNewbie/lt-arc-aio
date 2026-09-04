@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: lt_arc
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,12 +20,10 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
 
   api:
-    build:
-      context: ../apps/api
-      dockerfile: Dockerfile
+    image: ghcr.io/amateurnewbie/lt-arc-api:${API_IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -35,7 +33,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-string}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - api_files:/app/var/files
 

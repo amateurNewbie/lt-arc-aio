@@ -1,12 +1,30 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../application/lead_provider.dart';
 import '../data/lead_repository.dart';
 import 'lead_form_sheet.dart';
+import 'leads_web_page.dart';
 
-class LeadsPage extends ConsumerWidget {
+/// FR-2 — Khách hàng tiềm năng. Web dùng đúng layout `LT-ARC-Web-UI_1.html`
+/// (KPI + form thêm nhanh + bảng — `LeadsWebPage`); Mobile giữ danh sách kiểu
+/// chip lọc + FAB theo `LT-ARC-Mobile-UI_1.html`, vì 2 bản UI gốc khác hẳn
+/// ngôn ngữ hình ảnh cho cùng một trang.
+class LeadsPage extends StatelessWidget {
   const LeadsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return const Scaffold(body: LeadsWebPage());
+    }
+    return const _LeadsMobilePage();
+  }
+}
+
+class _LeadsMobilePage extends ConsumerWidget {
+  const _LeadsMobilePage();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

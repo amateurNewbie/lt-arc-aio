@@ -9,10 +9,24 @@ part 'project_provider.g.dart';
 ProjectRepository projectRepository(Ref ref) => ProjectRepository(ref.watch(apiClientProvider));
 
 @riverpod
-Future<List<Project>> projectList(Ref ref) => ref.watch(projectRepositoryProvider).list();
+Future<List<Project>> projectList(Ref ref, {ProjectStatus? status, ProjectCategory? category, String? search}) =>
+    ref.watch(projectRepositoryProvider).list(status: status, category: category, search: search);
 
 @riverpod
 Future<Project> projectDetail(Ref ref, String projectId) => ref.watch(projectRepositoryProvider).getById(projectId);
+
+@riverpod
+class ProjectFilter extends _$ProjectFilter {
+  @override
+  ({ProjectStatus? status, ProjectCategory? category, String search}) build() =>
+      (status: null, category: null, search: '');
+
+  void setStatus(ProjectStatus? status) => state = (status: status, category: state.category, search: state.search);
+
+  void setCategory(ProjectCategory? category) => state = (status: state.status, category: category, search: state.search);
+
+  void setSearch(String search) => state = (status: state.status, category: state.category, search: search);
+}
 
 @riverpod
 class ProjectActions extends _$ProjectActions {
@@ -24,10 +38,13 @@ class ProjectActions extends _$ProjectActions {
     required String client,
     required ProjectCategory category,
     required String managerId,
+    String? type,
+    double? area,
+    int? budget,
   }) async {
     final project = await ref
         .read(projectRepositoryProvider)
-        .create(name: name, client: client, category: category, managerId: managerId);
+        .create(name: name, client: client, category: category, managerId: managerId, type: type, area: area, budget: budget);
     ref.invalidate(projectListProvider);
     return project;
   }

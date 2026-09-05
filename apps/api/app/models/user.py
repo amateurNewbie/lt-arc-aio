@@ -12,6 +12,7 @@ class User(SQLModel, table=True):
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     email: str = Field(unique=True, index=True)
+    full_name: str | None = Field(default=None)
     password_hash: str
     role: Role
     department_id: UUID | None = Field(default=None, foreign_key="department.id", index=True)

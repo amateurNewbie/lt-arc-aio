@@ -67,6 +67,7 @@ async def create_task_endpoint(
         title=payload.title,
         project_id=payload.project_id,
         department_id=payload.department_id,
+        actor=user,
         description=payload.description,
         parent_task_id=payload.parent_task_id,
         due_date=payload.due_date,
@@ -95,7 +96,7 @@ async def update_task_progress_endpoint(
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ được cập nhật công việc trong bộ phận của mình")
 
     try:
-        task = await update_progress(session, task, progress=payload.progress)
+        task = await update_progress(session, task, progress=payload.progress, actor=user)
     except IncompleteSubtasksError as exc:
         raise HTTPException(
             status.HTTP_409_CONFLICT,

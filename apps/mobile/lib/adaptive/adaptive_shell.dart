@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
+import '../features/settings/presentation/role_preview_banner.dart';
 import 'mobile_shell.dart';
 import 'web_shell.dart';
 
@@ -11,6 +12,11 @@ class AdaptiveShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return kIsWeb ? const WebShell() : const MobileShell();
+    return Column(
+      children: [
+        const RolePreviewBanner(),
+        Expanded(child: kIsWeb ? const WebShell() : const MobileShell()),
+      ],
+    );
   }
 }

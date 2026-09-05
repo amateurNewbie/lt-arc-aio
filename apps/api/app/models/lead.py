@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Column, ForeignKey
+from sqlalchemy import BigInteger, Column, ForeignKey
 from sqlalchemy import Uuid as SAUuid
 from sqlmodel import Field, SQLModel
 
@@ -17,7 +17,7 @@ class Lead(SQLModel, table=True):
     phone: str | None = Field(default=None, index=True)
     email: str | None = Field(default=None)
     need: str | None = Field(default=None)
-    budget_estimate: int | None = Field(default=None)  # BIGINT VND
+    budget_estimate: int | None = Field(default=None, sa_type=BigInteger)  # BIGINT VND
     source: str | None = Field(default=None)
     note: str | None = Field(default=None)
 

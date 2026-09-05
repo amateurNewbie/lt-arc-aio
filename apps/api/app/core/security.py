@@ -17,22 +17,26 @@ def verify_password(plain_password: str, password_hash: str) -> bool:
     return bcrypt.checkpw(plain_password.encode("utf-8"), password_hash.encode("utf-8"))
 
 
-def _create_token(subject: UUID, expires_delta: timedelta, token_type: str) -> str:
+def _create_token(subject: UUID, expires_delta: timedelta, token_type: str, extra_claims: dict | None = None) -> str:
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(subject),
         "type": token_type,
         "iat": now,
         "exp": now + expires_delta,
+        **(extra_claims or {}),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
-def create_access_token(user_id: UUID) -> str:
+def create_access_token(user_id: UUID, *, preview_role: str | None = None) -> str:
+    """`preview_role` — FR-1.6, xem thử giao diện/dữ liệu như vai trò khác.
+    Token mang claim này bị giới hạn chỉ đọc (enforce ở `get_current_user`)."""
     return _create_token(
         user_id,
         timedelta(minutes=settings.access_token_expire_minutes),
         "access",
+        extra_claims={"preview_role": preview_role} if preview_role else None,
     )
 
 
@@ -48,7 +52,7 @@ class TokenError(Exception):
     pass
 
 
-def decode_token(token: str, expected_type: str = "access") -> UUID:
+def decode_token_payload(token: str, expected_type: str = "access") -> dict:
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
     except jwt.PyJWTError as exc:
@@ -56,8 +60,4 @@ def decode_token(token: str, expected_type: str = "access") -> UUID:
 
     if payload.get("type") != expected_type:
         raise TokenError(f"Expected a {expected_type} token")
-
-    try:
-        return UUID(payload["sub"])
-    except (KeyError, ValueError) as exc:
-        raise TokenError("Malformed token subject") from exc
+    return payload

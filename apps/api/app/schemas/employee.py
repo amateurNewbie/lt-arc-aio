@@ -20,3 +20,5 @@ class EmployeeRead(SQLModel):
     hire_date: date | None
     status: EmployeeStatus
     pay_profile_id: UUID | None
+    daily_rate_override: int | None
+    allowance_overrides: list[dict] | None

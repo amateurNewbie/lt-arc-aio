@@ -1,16 +1,29 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../application/project_provider.dart';
 import '../data/project_repository.dart';
 import 'project_detail_page.dart';
+import 'projects_web_page.dart';
 
+/// FR-3 — Dự án. Web dùng layout bám `LT-ARC-Web-UI_1.html` qua `ProjectsWebPage`.
 class ProjectsPage extends ConsumerWidget {
   const ProjectsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final projectsAsync = ref.watch(projectListProvider);
+    if (kIsWeb) return const ProjectsWebPage();
+    return const _ProjectsMobilePage();
+  }
+}
+
+class _ProjectsMobilePage extends ConsumerWidget {
+  const _ProjectsMobilePage();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final projectsAsync = ref.watch(projectListProvider());
 
     return Scaffold(
       appBar: AppBar(title: const Text('Dự án')),
@@ -20,7 +33,7 @@ class ProjectsPage extends ConsumerWidget {
             return const Center(child: Text('Chưa có dự án nào'));
           }
           return RefreshIndicator(
-            onRefresh: () => ref.refresh(projectListProvider.future),
+            onRefresh: () => ref.refresh(projectListProvider().future),
             child: ListView.builder(
               padding: const EdgeInsets.all(12),
               itemCount: projects.length,

@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, Column
+from sqlalchemy import JSON, BigInteger, Column
 from sqlmodel import Field, SQLModel
 
 from app.core.clock import utcnow
@@ -19,7 +19,7 @@ class Project(SQLModel, table=True):
     type: str | None = Field(default=None)  # loại hình công trình (Nhà phố, Biệt thự, ...)
     area: float | None = Field(default=None)  # m2
 
-    budget: int | None = Field(default=None)  # BIGINT VND — ngân sách hợp đồng
+    budget: int | None = Field(default=None, sa_type=BigInteger)  # BIGINT VND — ngân sách hợp đồng
     progress: int = Field(default=0)  # % tổng thể (FR-3.4)
     stage_progress: dict | None = Field(default=None, sa_column=Column(JSON))
     """FR-3.4 — % theo giai đoạn, vd {"design": 100, "permit": 100, "rough_construction": 85, ...}."""

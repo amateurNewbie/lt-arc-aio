@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from sqlmodel import SQLModel
@@ -34,6 +35,7 @@ class LeadRead(SQLModel):
     owner_id: UUID
     status: LeadStatus
     converted_project_id: UUID | None
+    created_at: datetime
 
 
 class LeadConvertRequest(SQLModel):

@@ -9,6 +9,7 @@ from app.core.permissions import Role
 from app.models.enums import TaskPriority, TaskStatus
 from app.models.task import Task
 from app.models.user import User
+from app.services.activity_service import log_activity
 
 
 class IncompleteSubtasksError(Exception):
@@ -21,6 +22,7 @@ async def create_task(
     title: str,
     project_id: UUID,
     department_id: UUID,
+    actor: User,
     description: str | None = None,
     parent_task_id: UUID | None = None,
     due_date: date | None = None,
@@ -41,6 +43,7 @@ async def create_task(
     session.add(task)
     await session.commit()
     await session.refresh(task)
+    await log_activity(session, icon="list-plus", title=f'Tạo công việc "{title}"', user_id=actor.id, project_id=project_id)
     return task
 
 
@@ -51,7 +54,7 @@ async def _has_incomplete_subtasks(session: AsyncSession, task_id: UUID) -> bool
     return result.first() is not None
 
 
-async def update_progress(session: AsyncSession, task: Task, *, progress: int) -> Task:
+async def update_progress(session: AsyncSession, task: Task, *, progress: int, actor: User) -> Task:
     """FR-5.3 — tiến độ đạt 100% tự động chuyển 'Đã hoàn thành', trừ khi còn
     đầu việc con dở dang (FR-5.2)."""
     progress = max(0, min(100, progress))
@@ -67,6 +70,13 @@ async def update_progress(session: AsyncSession, task: Task, *, progress: int) -
     session.add(task)
     await session.commit()
     await session.refresh(task)
+    await log_activity(
+        session,
+        icon="activity",
+        title=f'Cập nhật tiến độ "{task.title}" ({progress}%)',
+        user_id=actor.id,
+        project_id=task.project_id,
+    )
     return task
 
 

@@ -9,11 +9,13 @@ class UserCreate(SQLModel):
     email: str
     password: str
     role: Role
+    full_name: str | None = None
     department_id: UUID | None = None
 
 
 class UserRead(SQLModel):
     id: UUID
     email: str
+    full_name: str | None
     role: Role
     department_id: UUID | None

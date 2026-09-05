@@ -35,6 +35,7 @@ class Lead {
     required this.name,
     required this.ownerId,
     required this.status,
+    required this.createdAt,
     this.phone,
     this.email,
     this.need,
@@ -55,6 +56,7 @@ class Lead {
   final String ownerId;
   final LeadStatus status;
   final String? convertedProjectId;
+  final DateTime createdAt;
 
   factory Lead.fromJson(Map<String, dynamic> json) => Lead(
         id: json['id'] as String,
@@ -68,6 +70,7 @@ class Lead {
         ownerId: json['owner_id'] as String,
         status: leadStatusFromJson(json['status'] as String),
         convertedProjectId: json['converted_project_id'] as String?,
+        createdAt: DateTime.parse(json['created_at'] as String),
       );
 }
 
@@ -76,12 +79,14 @@ class LeadRepository {
 
   final ApiClient _apiClient;
 
-  Future<List<Lead>> list({LeadStatus? status, String? search}) async {
+  Future<List<Lead>> list({LeadStatus? status, String? source, String? ownerId, String? search}) async {
     try {
       final response = await _apiClient.dio.get(
         '/api/leads',
         queryParameters: {
           if (status != null) 'status_filter': status.wire,
+          if (source != null) 'source': source,
+          if (ownerId != null) 'owner_id': ownerId,
           if (search != null && search.isNotEmpty) 'search': search,
         },
       );
@@ -99,6 +104,7 @@ class LeadRepository {
     int? budgetEstimate,
     String? source,
     String? note,
+    String? ownerId,
   }) async {
     try {
       final response = await _apiClient.dio.post(
@@ -111,6 +117,7 @@ class LeadRepository {
           'budget_estimate': budgetEstimate,
           'source': source,
           'note': note,
+          'owner_id': ownerId,
         },
       );
       return Lead.fromJson(response.data as Map<String, dynamic>);

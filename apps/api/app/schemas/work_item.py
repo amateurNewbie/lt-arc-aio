@@ -14,6 +14,10 @@ class WorkItemCreate(SQLModel):
     unit_price: int
 
 
+class WorkItemProgressUpdate(SQLModel):
+    progress: int
+
+
 class WorkItemRead(SQLModel):
     id: UUID
     project_id: UUID

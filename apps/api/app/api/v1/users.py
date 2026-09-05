@@ -16,6 +16,16 @@ from app.services.permission_service import grant_permission, revoke_permission
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
+@router.get("", response_model=list[UserRead])
+async def list_users_endpoint(
+    session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_roles(Role.ADMIN, Role.DIRECTOR)),
+) -> list[User]:
+    """FR-1.7/1.8 — danh sách tài khoản để cấp quyền bổ sung / gán hồ sơ nhân sự."""
+    result = await session.exec(select(User))
+    return list(result.all())
+
+
 @router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def create_user_endpoint(
     payload: UserCreate,
@@ -28,9 +38,10 @@ async def create_user_endpoint(
         email=payload.email,
         password=payload.password,
         role=payload.role,
+        full_name=payload.full_name,
         department_id=payload.department_id,
     )
-    return UserRead(id=user.id, email=user.email, role=user.role, department_id=user.department_id)
+    return UserRead(id=user.id, email=user.email, full_name=user.full_name, role=user.role, department_id=user.department_id)
 
 
 @router.get("/{user_id}/permissions", response_model=list[PermissionGrantRead])

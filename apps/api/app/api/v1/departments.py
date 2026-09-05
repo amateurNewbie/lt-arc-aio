@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/departments", tags=["departments"])
 async def list_departments_endpoint(
     session: AsyncSession = Depends(get_session),
     _user: User = Depends(require_roles(Role.ADMIN, Role.DIRECTOR, Role.DEPARTMENT_HEAD)),
-) -> list[Department]:
+) -> list[DepartmentRead]:
     return await list_departments(session)
 
 
@@ -26,7 +26,7 @@ async def create_department_endpoint(
     payload: DepartmentCreate,
     session: AsyncSession = Depends(get_session),
     _admin: User = Depends(require_roles(Role.ADMIN, Role.DIRECTOR)),
-) -> Department:
+) -> DepartmentRead:
     """FR-13.1 — chỉ Admin/Giám đốc tạo bộ phận."""
     return await create_department(session, name=payload.name, head_user_id=payload.head_user_id)
 
@@ -37,7 +37,7 @@ async def update_department_endpoint(
     payload: DepartmentUpdate,
     session: AsyncSession = Depends(get_session),
     _admin: User = Depends(require_roles(Role.ADMIN, Role.DIRECTOR)),
-) -> Department:
+) -> DepartmentRead:
     department = await session.get(Department, department_id)
     if department is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Department not found")

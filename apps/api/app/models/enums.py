@@ -57,3 +57,53 @@ class WorkItemStatus(StrEnum):
     NOT_STARTED = "NOT_STARTED"
     IN_PROGRESS = "IN_PROGRESS"
     DONE = "DONE"
+
+
+class BudgetEstimateStatus(StrEnum):
+    """FR-4.2 — Nháp → Chờ duyệt → Đã duyệt."""
+
+    DRAFT = "DRAFT"
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+
+
+class PayrollStatus(StrEnum):
+    UNPAID = "UNPAID"
+    PAID = "PAID"
+
+
+class FundType(StrEnum):
+    CASH = "CASH"
+    BANK = "BANK"
+
+
+class ContractStatus(StrEnum):
+    """FR-9.1 — Còn hiệu lực/Sắp hết hạn/Đã thanh lý/Đã tất toán."""
+
+    ACTIVE = "ACTIVE"
+    EXPIRING_SOON = "EXPIRING_SOON"
+    LIQUIDATED = "LIQUIDATED"
+    SETTLED = "SETTLED"
+
+
+class MilestoneStatus(StrEnum):
+    """FR-9.3 — Đã thu đủ/Thu một phần/Chờ thu/Quá hạn/Giữ bảo hành."""
+
+    PENDING = "PENDING"
+    PARTIALLY_PAID = "PARTIALLY_PAID"
+    PAID = "PAID"
+    OVERDUE = "OVERDUE"
+    RETAINED = "RETAINED"
+
+
+class PayableStatus(StrEnum):
+    PENDING = "PENDING"
+    OVERDUE = "OVERDUE"
+    SETTLED = "SETTLED"
+
+
+class AllocationBasis(StrEnum):
+    """FR-8.2 — theo tỷ trọng doanh thu (mặc định) hoặc chia đều."""
+
+    REVENUE = "REVENUE"
+    EQUAL = "EQUAL"

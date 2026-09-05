@@ -60,6 +60,10 @@ class Project {
     this.type,
     this.area,
     this.budget,
+    this.stageProgress,
+    this.leadId,
+    this.startDate,
+    this.dueDate,
   });
 
   final String id;
@@ -73,6 +77,10 @@ class Project {
   final int progress;
   final ProjectStatus status;
   final String managerId;
+  final Map<String, dynamic>? stageProgress;
+  final String? leadId;
+  final DateTime? startDate;
+  final DateTime? dueDate;
 
   factory Project.fromJson(Map<String, dynamic> json) => Project(
         id: json['id'] as String,
@@ -86,6 +94,10 @@ class Project {
         progress: json['progress'] as int,
         status: projectStatusFromJson(json['status'] as String),
         managerId: json['manager_id'] as String,
+        stageProgress: (json['stage_progress'] as Map?)?.cast<String, dynamic>(),
+        leadId: json['lead_id'] as String?,
+        startDate: json['start_date'] != null ? DateTime.parse(json['start_date'] as String) : null,
+        dueDate: json['due_date'] != null ? DateTime.parse(json['due_date'] as String) : null,
       );
 }
 

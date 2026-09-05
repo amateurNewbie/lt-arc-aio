@@ -26,3 +26,24 @@ async def create_employee(
 async def list_employees(session: AsyncSession) -> list[Employee]:
     result = await session.exec(select(Employee))
     return list(result.all())
+
+
+async def update_pay_override(
+    session: AsyncSession,
+    employee: Employee,
+    *,
+    pay_profile_id: UUID | None,
+    daily_rate_override: int | None,
+    allowance_overrides: list[dict] | None,
+) -> Employee:
+    """FR-16.5 — ghi đè đơn giá/phụ cấp riêng (thoả thuận cá nhân)."""
+    if pay_profile_id is not None:
+        employee.pay_profile_id = pay_profile_id
+    if daily_rate_override is not None:
+        employee.daily_rate_override = daily_rate_override
+    if allowance_overrides is not None:
+        employee.allowance_overrides = allowance_overrides
+    session.add(employee)
+    await session.commit()
+    await session.refresh(employee)
+    return employee

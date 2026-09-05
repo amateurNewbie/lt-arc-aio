@@ -13,3 +13,8 @@ class CompanySettings(SQLModel, table=True):
     email: str | None = Field(default=None)
     currency: str = Field(default="VND")
     unit: str = Field(default="m2")
+
+    # FR-19.2 — số ngày nhắc trước, cấu hình được.
+    task_reminder_days: int = Field(default=1)
+    debt_reminder_days: int = Field(default=3)
+    overhead_reminder_day: int = Field(default=28)  # FR-8.4 — ngày trong tháng

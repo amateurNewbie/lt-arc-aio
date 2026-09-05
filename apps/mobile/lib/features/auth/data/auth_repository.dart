@@ -11,16 +11,21 @@ class LoginFailure implements Exception {
 }
 
 class CurrentUser {
-  const CurrentUser({required this.id, required this.email, required this.role});
+  const CurrentUser({required this.id, required this.email, required this.role, this.fullName});
 
   final String id;
   final String email;
   final String role;
+  final String? fullName;
+
+  /// Tên hiển thị — ưu tiên họ tên, chưa có thì tạm dùng email (FR-1).
+  String get displayName => (fullName != null && fullName!.trim().isNotEmpty) ? fullName! : email;
 
   factory CurrentUser.fromJson(Map<String, dynamic> json) => CurrentUser(
         id: json['id'] as String,
         email: json['email'] as String,
         role: json['role'] as String,
+        fullName: json['full_name'] as String?,
       );
 }
 

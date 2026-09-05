@@ -66,6 +66,7 @@ async def create_user(
     email: str,
     password: str,
     role,
+    full_name: str | None = None,
     department_id=None,
 ) -> User:
     """FR-1.3 — chỉ ADMIN được tạo tài khoản mới (kiểm tra ở router qua require_roles)."""
@@ -73,6 +74,7 @@ async def create_user(
         email=email,
         password_hash=hash_password(password),
         role=role,
+        full_name=full_name,
         department_id=department_id,
     )
     session.add(user)

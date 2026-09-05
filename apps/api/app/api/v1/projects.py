@@ -1,12 +1,13 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.deps import get_current_user, get_session, require_roles
 from app.core.permissions import Role
 from app.models.enums import ProjectCategory, ProjectStatus
-from app.models.project import Project
+from app.models.project import Project, ProjectDepartmentHead
 from app.models.user import User
 from app.schemas.project import (
     ProjectAssignHeadsRequest,
@@ -15,6 +16,8 @@ from app.schemas.project import (
     ProjectProgressUpdate,
     ProjectRead,
 )
+from app.schemas.reports import ProjectPnl
+from app.services.pnl_service import project_pnl
 from app.services.project_service import assign_department_heads, create_project, list_projects, update_progress
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -103,3 +106,27 @@ async def update_progress_endpoint(
     if project is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
     return await update_progress(session, project, progress=payload.progress, stage_progress=payload.stage_progress)
+
+
+@router.get("/{project_id}/financial-summary", response_model=ProjectPnl)
+async def project_financial_summary_endpoint(
+    project_id: UUID,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_roles(Role.ADMIN, Role.DIRECTOR, Role.DEPARTMENT_HEAD)),
+) -> dict:
+    """FR-11.2/11.6 — Lãi/Lỗ của một dự án; Trưởng bộ phận chỉ xem dự án mình phụ trách."""
+    project = await session.get(Project, project_id)
+    if project is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+
+    if user.role == Role.DEPARTMENT_HEAD:
+        result = await session.exec(
+            select(ProjectDepartmentHead).where(
+                ProjectDepartmentHead.project_id == project_id,
+                ProjectDepartmentHead.user_id == user.id,
+            )
+        )
+        if result.first() is None:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Không phải dự án bạn phụ trách")
+
+    return await project_pnl(session, project_id)

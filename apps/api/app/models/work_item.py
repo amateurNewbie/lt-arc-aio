@@ -1,5 +1,6 @@
 from uuid import UUID, uuid4
 
+from sqlalchemy import BigInteger
 from sqlmodel import Field, SQLModel
 
 from app.models.enums import WorkItemStatus
@@ -14,7 +15,7 @@ class WorkItem(SQLModel, table=True):
     name: str
     unit: str
     quantity: float
-    unit_price: int  # BIGINT VND
-    amount: int  # BIGINT VND — quantity * unit_price, tính ở service khi ghi
+    unit_price: int = Field(sa_type=BigInteger)  # BIGINT VND
+    amount: int = Field(sa_type=BigInteger)  # BIGINT VND — quantity * unit_price, tính ở service khi ghi
     progress: int = Field(default=0)
     status: WorkItemStatus = Field(default=WorkItemStatus.NOT_STARTED)

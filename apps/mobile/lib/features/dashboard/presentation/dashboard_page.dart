@@ -1,21 +1,39 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../activities/application/activity_provider.dart';
 import '../../auth/application/auth_provider.dart';
+import '../../more/presentation/more_page.dart';
+import '../../notifications/application/notification_provider.dart';
+import '../../notifications/presentation/notifications_page.dart';
 import '../../projects/application/project_provider.dart';
 import '../../tasks/application/task_provider.dart';
 import '../../tasks/data/task_repository.dart';
+import 'dashboard_web_page.dart';
 
+/// FR — Tổng quan. Web dùng layout bám `LT-ARC-Web-UI_1.html` (`DashboardWebPage`);
+/// Mobile giữ AppBar + stat grid 2 cột theo `LT-ARC-Mobile-UI_1.html`.
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final projectsAsync = ref.watch(projectListProvider);
+    if (kIsWeb) return const DashboardWebPage();
+    return const _DashboardMobilePage();
+  }
+}
+
+class _DashboardMobilePage extends ConsumerWidget {
+  const _DashboardMobilePage();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final projectsAsync = ref.watch(projectListProvider());
     final tasksAsync = ref.watch(taskListProvider());
     final activitiesAsync = ref.watch(recentActivitiesProvider);
+    final unreadCount = ref.watch(notificationListProvider).value?.where((n) => !n.read).length ?? 0;
 
     final activeProjects = projectsAsync.value?.length ?? 0;
     final tasks = tasksAsync.value ?? const [];
@@ -26,6 +44,20 @@ class DashboardPage extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Tổng quan'),
         actions: [
+          IconButton(
+            icon: Badge(
+              label: Text('$unreadCount'),
+              isLabelVisible: unreadCount > 0,
+              child: const Icon(Icons.notifications_outlined),
+            ),
+            tooltip: 'Thông báo',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationsPage())),
+          ),
+          IconButton(
+            icon: const Icon(Icons.apps_outlined),
+            tooltip: 'Menu',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MorePage())),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => ref.read(authProvider.notifier).logout(),

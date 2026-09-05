@@ -34,21 +34,21 @@ async def test_subtask_blocks_parent_auto_complete(session: AsyncSession) -> Non
     director = await create_user(session, email="dtask1@ltarc.vn", password="x", role=Role.DIRECTOR)
     dept, project = await _make_project(session, director)
 
-    parent = await create_task(session, title="Thi công phần thô", project_id=project.id, department_id=dept.id)
+    parent = await create_task(session, title="Thi công phần thô", project_id=project.id, department_id=dept.id, actor=director)
     child = await create_task(
-        session, title="Đổ móng", project_id=project.id, department_id=dept.id, parent_task_id=parent.id
+        session, title="Đổ móng", project_id=project.id, department_id=dept.id, parent_task_id=parent.id, actor=director
     )
 
     try:
-        await update_progress(session, parent, progress=100)
+        await update_progress(session, parent, progress=100, actor=director)
         assert False, "expected IncompleteSubtasksError"
     except IncompleteSubtasksError:
         pass
 
-    child = await update_progress(session, child, progress=100)
+    child = await update_progress(session, child, progress=100, actor=director)
     assert child.status == TaskStatus.DONE
 
-    parent = await update_progress(session, parent, progress=100)
+    parent = await update_progress(session, parent, progress=100, actor=director)
     assert parent.status == TaskStatus.DONE
 
 
@@ -64,6 +64,7 @@ async def test_employee_can_only_update_own_task(client: AsyncClient, session: A
         title="Lắp đặt điện tầng 2",
         project_id=project.id,
         department_id=dept.id,
+        actor=director,
         assignee_id=employee_a.id,
     )
 
@@ -115,6 +116,7 @@ async def test_overdue_flag_set_when_due_date_passed(client: AsyncClient, sessio
         title="Việc quá hạn",
         project_id=project.id,
         department_id=dept.id,
+        actor=director,
         due_date=date(2020, 1, 1),
     )
 

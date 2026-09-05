@@ -10,3 +10,15 @@ DepartmentRepository departmentRepository(Ref ref) => DepartmentRepository(ref.w
 
 @riverpod
 Future<List<Department>> departmentList(Ref ref) => ref.watch(departmentRepositoryProvider).list();
+
+@riverpod
+class DepartmentActions extends _$DepartmentActions {
+  @override
+  void build() {}
+
+  Future<Department> create({required String name, String? headUserId}) async {
+    final department = await ref.read(departmentRepositoryProvider).create(name: name, headUserId: headUserId);
+    ref.invalidate(departmentListProvider);
+    return department;
+  }
+}

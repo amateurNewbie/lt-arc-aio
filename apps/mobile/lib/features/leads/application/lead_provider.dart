@@ -11,17 +11,22 @@ LeadRepository leadRepository(Ref ref) => LeadRepository(ref.watch(apiClientProv
 @riverpod
 class LeadFilter extends _$LeadFilter {
   @override
-  ({LeadStatus? status, String search}) build() => (status: null, search: '');
+  ({LeadStatus? status, String? source, String? ownerId, String search}) build() =>
+      (status: null, source: null, ownerId: null, search: '');
 
-  void setStatus(LeadStatus? status) => state = (status: status, search: state.search);
+  void setStatus(LeadStatus? status) => state = (status: status, source: state.source, ownerId: state.ownerId, search: state.search);
 
-  void setSearch(String search) => state = (status: state.status, search: search);
+  void setSource(String? source) => state = (status: state.status, source: source, ownerId: state.ownerId, search: state.search);
+
+  void setOwner(String? ownerId) => state = (status: state.status, source: state.source, ownerId: ownerId, search: state.search);
+
+  void setSearch(String search) => state = (status: state.status, source: state.source, ownerId: state.ownerId, search: search);
 }
 
 @riverpod
 Future<List<Lead>> leadList(Ref ref) {
   final filter = ref.watch(leadFilterProvider);
-  return ref.watch(leadRepositoryProvider).list(status: filter.status, search: filter.search);
+  return ref.watch(leadRepositoryProvider).list(status: filter.status, source: filter.source, ownerId: filter.ownerId, search: filter.search);
 }
 
 @riverpod
@@ -36,6 +41,8 @@ class LeadActions extends _$LeadActions {
     String? need,
     int? budgetEstimate,
     String? source,
+    String? note,
+    String? ownerId,
   }) async {
     final lead = await ref.read(leadRepositoryProvider).create(
           name: name,
@@ -44,6 +51,8 @@ class LeadActions extends _$LeadActions {
           need: need,
           budgetEstimate: budgetEstimate,
           source: source,
+          note: note,
+          ownerId: ownerId,
         );
     ref.invalidate(leadListProvider);
     return lead;

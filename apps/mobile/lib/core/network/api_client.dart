@@ -20,20 +20,29 @@ class ApiClient {
 
   final Dio dio;
 
+  /// FR-1.6 — token xem thử vai trò khác; chỉ giữ trong bộ nhớ (không lưu
+  /// `SecureStorage`), ưu tiên hơn token đăng nhập thật khi có.
+  String? _previewToken;
+
+  void setPreviewToken(String? token) => _previewToken = token;
+
+  bool get isPreviewActive => _previewToken != null;
+
   static ApiClient create() {
     final dio = Dio(BaseOptions(baseUrl: _defaultBaseUrl()));
+    final client = ApiClient._(dio);
 
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final token = await SecureStorage.readAccessToken();
+          final token = client._previewToken ?? await SecureStorage.readAccessToken();
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }
           handler.next(options);
         },
         onError: (error, handler) async {
-          if (error.response?.statusCode == 401) {
+          if (error.response?.statusCode == 401 && !client.isPreviewActive) {
             await SecureStorage.clear();
             // Provider layer (authProvider) quan sát lỗi 401 qua repository và
             // tự chuyển state về đăng xuất — xem features/auth/application.
@@ -43,6 +52,6 @@ class ApiClient {
       ),
     );
 
-    return ApiClient._(dio);
+    return client;
   }
 }

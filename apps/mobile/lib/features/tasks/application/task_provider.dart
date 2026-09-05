@@ -9,8 +9,8 @@ part 'task_provider.g.dart';
 TaskRepository taskRepository(Ref ref) => TaskRepository(ref.watch(apiClientProvider));
 
 @riverpod
-Future<List<Task>> taskList(Ref ref, {String? projectId}) =>
-    ref.watch(taskRepositoryProvider).list(projectId: projectId);
+Future<List<Task>> taskList(Ref ref, {String? projectId, String? departmentId, String? assigneeId}) =>
+    ref.watch(taskRepositoryProvider).list(projectId: projectId, departmentId: departmentId, assigneeId: assigneeId);
 
 @riverpod
 class TaskActions extends _$TaskActions {

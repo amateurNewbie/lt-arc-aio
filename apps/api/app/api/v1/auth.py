@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.core.deps import get_current_user, get_session
+from app.core.deps import get_current_user, get_session, require_roles
+from app.core.permissions import Role
 from app.core.security import create_access_token, create_refresh_token
 from app.models.user import User
-from app.schemas.auth import LoginRequest, MeResponse, TokenResponse
+from app.schemas.auth import LoginRequest, MeResponse, PreviewRoleRequest, PreviewRoleResponse, TokenResponse
 from app.services.auth_service import AccountLockedError, InvalidCredentialsError, authenticate
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -30,4 +31,13 @@ async def login(payload: LoginRequest, session: AsyncSession = Depends(get_sessi
 
 @router.get("/me", response_model=MeResponse)
 async def me(user: User = Depends(get_current_user)) -> MeResponse:
-    return MeResponse(id=user.id, email=user.email, role=user.role, department_id=user.department_id)
+    return MeResponse(id=user.id, email=user.email, full_name=user.full_name, role=user.role, department_id=user.department_id)
+
+
+@router.post("/preview-role", response_model=PreviewRoleResponse)
+async def preview_role(
+    payload: PreviewRoleRequest,
+    user: User = Depends(require_roles(Role.ADMIN)),
+) -> PreviewRoleResponse:
+    """FR-1.6 — Admin xem thử giao diện/dữ liệu như vai trò khác (chỉ đọc)."""
+    return PreviewRoleResponse(access_token=create_access_token(user.id, preview_role=payload.role.value))

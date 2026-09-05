@@ -1,11 +1,14 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../application/task_provider.dart';
 import '../data/task_repository.dart';
+import 'tasks_web_page.dart';
 
-/// FR-5.4 — Kanban 3 cột: Cần làm / Đang làm / Đã hoàn thành.
+/// FR-5.4 — Kanban 3 cột: Cần làm / Đang làm / Đã hoàn thành. Web (trang toàn
+/// công ty, không embedded) dùng layout bám `LT-ARC-Web-UI_1.html` qua `TasksWebPage`.
 class TasksPage extends ConsumerWidget {
   const TasksPage({super.key, this.projectId, this.embedded = false});
 
@@ -14,6 +17,8 @@ class TasksPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (!embedded && kIsWeb) return const TasksWebPage();
+
     final tasksAsync = ref.watch(taskListProvider(projectId: projectId));
 
     final body = tasksAsync.when(

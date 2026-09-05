@@ -16,6 +16,18 @@ class AppColors {
   static const webSidebarText = Color(0xFFC9C0AE);
   static const webBorder = Color(0xFFE6E0D0);
 
+  /// Badge/stat semantic tokens — quy đổi gần đúng từ `oklch(...)` CSS gốc
+  /// sang sRGB (Flutter `Color` không hỗ trợ oklch trực tiếp).
+  static const webCardBg = Color(0xFFFFFFFF);
+  static const webMutedFg = Color(0xFF8A8378);
+  static const webSecondaryBg = Color(0xFFEFE9DC);
+  static const webSecondaryFg = Color(0xFF2C2A25);
+  static const webMutedBg = Color(0xFFF1EEE6);
+  static const webDestructive = Color(0xFFD02C2A);
+  static const webSuccess = Color(0xFF2F7D53);
+  static const webWarning = Color(0xFFC89A46);
+  static const webWarningFg = Color(0xFF332900);
+
   // Mobile (LT-ARC-Mobile-UI_1.html)
   static const mobileBackground = Color(0xFFF1F2F4);
   static const mobileForeground = Color(0xFF181A1F);

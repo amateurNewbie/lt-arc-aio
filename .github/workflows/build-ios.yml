@@ -1,0 +1,67 @@
+name: Build & Upload iOS to TestFlight
+
+on:
+  # TODO: bật lại push trigger sau khi có Apple Team ID (xem ExportOptions.plist).
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - "apps/mobile/**"
+  #     - ".github/workflows/build-ios.yml"
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code (build_runner)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Import signing certificate
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
+          p12-password: ${{ secrets.IOS_P12_PASSWORD }}
+          keychain-password: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+
+      - name: Install provisioning profile
+        run: |
+          mkdir -p ~/Library/MobileDevice/"Provisioning Profiles"
+          echo "${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}" | base64 --decode > profile.mobileprovision
+          UUID=$(security cms -D -i profile.mobileprovision | /usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin)
+          cp profile.mobileprovision ~/Library/MobileDevice/"Provisioning Profiles"/"$UUID".mobileprovision
+
+      - name: Set manual signing build settings
+        run: |
+          {
+            echo "DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }}"
+            echo "CODE_SIGN_STYLE=Manual"
+            echo "CODE_SIGN_IDENTITY=Apple Distribution"
+            echo "PROVISIONING_PROFILE_SPECIFIER=LT ARC AppStore"
+          } >> ios/Flutter/Release.xcconfig
+
+      - name: Build IPA
+        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+
+      - name: Upload to TestFlight
+        run: |
+          echo "${{ secrets.ASC_API_KEY_BASE64 }}" | base64 --decode > AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+          mkdir -p ~/.appstoreconnect/private_keys
+          mv AuthKey_${{ secrets.ASC_KEY_ID }}.p8 ~/.appstoreconnect/private_keys/
+          xcrun altool --upload-app -f build/ios/ipa/*.ipa -t ios \
+            --apiKey "${{ secrets.ASC_KEY_ID }}" \
+            --apiIssuer "${{ secrets.ASC_ISSUER_ID }}"

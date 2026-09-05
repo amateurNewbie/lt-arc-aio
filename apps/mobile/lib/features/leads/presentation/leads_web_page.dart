@@ -97,11 +97,11 @@ class _StatsRow extends StatelessWidget {
 
     return Row(
       children: [
-        Expanded(child: _StatCard(icon: Icons.people_outline, iconColor: AppColors.gold, value: '$total', label: 'Tổng khách hàng tiềm năng')),
+        Expanded(child: _StatCard(icon: Icons.people_outline, iconColor: AppColors.webForeground, iconBgColor: AppColors.gold, value: '$total', label: 'Tổng khách hàng tiềm năng')),
         const SizedBox(width: 12),
         Expanded(child: _StatCard(icon: Icons.mark_chat_unread_outlined, iconColor: AppColors.webWarning, value: '$consulting', label: 'Đang tư vấn')),
         const SizedBox(width: 12),
-        Expanded(child: _StatCard(icon: Icons.description_outlined, iconColor: AppColors.gold, value: '$quoted', label: 'Đã báo giá')),
+        Expanded(child: _StatCard(icon: Icons.description_outlined, iconColor: AppColors.webForeground, iconBgColor: AppColors.gold, value: '$quoted', label: 'Đã báo giá')),
         const SizedBox(width: 12),
         Expanded(
           child: _StatCard(
@@ -118,10 +118,12 @@ class _StatsRow extends StatelessWidget {
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.icon, required this.iconColor, required this.value, required this.label, this.valueColor});
+  const _StatCard({required this.icon, required this.iconColor, required this.value, required this.label, this.valueColor, Color? iconBgColor})
+      : iconBgColor = iconBgColor ?? iconColor;
 
   final IconData icon;
   final Color iconColor;
+  final Color iconBgColor;
   final String value;
   final String label;
   final Color? valueColor;
@@ -134,7 +136,7 @@ class _StatCard extends StatelessWidget {
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(4)),
+            decoration: BoxDecoration(color: iconBgColor.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(4)),
             child: Icon(icon, size: 20, color: iconColor),
           ),
           const SizedBox(width: 12),
@@ -476,17 +478,19 @@ class _LeadsTableCard extends ConsumerWidget {
                   rows: [
                     for (final lead in leads)
                       DataRow(
-                        color: lead.status == LeadStatus.rejected ? WidgetStatePropertyAll(Colors.black.withValues(alpha: 0.03)) : null,
                         cells: [
-                          DataCell(Text(lead.name, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13))),
-                          DataCell(Text(lead.phone ?? '—', style: const TextStyle(fontSize: 13))),
-                          DataCell(Text(lead.need ?? '—', style: const TextStyle(fontSize: 13))),
-                          DataCell(Text(lead.budgetEstimate != null ? '${currency.format(lead.budgetEstimate)} ₫' : '—', style: const TextStyle(fontSize: 13))),
-                          DataCell(lead.source != null ? WebBadge(lead.source!, variant: WebBadgeVariant.outline) : const Text('—')),
-                          DataCell(Text(usersById[lead.ownerId]?.displayName ?? '—', style: const TextStyle(fontSize: 13))),
-                          DataCell(_statusCell(lead, projectsById)),
-                          DataCell(Text(dateFormat.format(lead.createdAt.toLocal()), style: const TextStyle(fontSize: 13))),
-                          DataCell(_actionsCell(context, ref, lead)),
+                          for (final cell in [
+                            Text(lead.name, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                            Text(lead.phone ?? '—', style: const TextStyle(fontSize: 13)),
+                            Text(lead.need ?? '—', style: const TextStyle(fontSize: 13)),
+                            Text(lead.budgetEstimate != null ? '${currency.format(lead.budgetEstimate)} ₫' : '—', style: const TextStyle(fontSize: 13)),
+                            lead.source != null ? WebBadge(lead.source!, variant: WebBadgeVariant.outline) : const Text('—'),
+                            Text(usersById[lead.ownerId]?.displayName ?? '—', style: const TextStyle(fontSize: 13)),
+                            _statusCell(lead, projectsById),
+                            Text(dateFormat.format(lead.createdAt.toLocal()), style: const TextStyle(fontSize: 13)),
+                            _actionsCell(context, ref, lead),
+                          ])
+                            DataCell(lead.status == LeadStatus.rejected ? Opacity(opacity: 0.7, child: cell) : cell),
                         ],
                       ),
                   ],

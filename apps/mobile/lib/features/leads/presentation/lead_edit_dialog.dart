@@ -287,12 +287,12 @@ Future<void> _showStatusNoteDialog(
                             targetStatus,
                             note: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
                           );
-                      if (dialogContext.mounted) {
-                        Navigator.of(dialogContext).pop();
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã cập nhật trạng thái')));
-                        }
+                      // Đóng cả popup ghi chú lẫn popup sửa khách hàng cùng lúc,
+                      // quay thẳng về danh sách — dùng `context` gốc (còn mounted
+                      // xuyên suốt, không bị ảnh hưởng bởi việc dialog note đóng).
+                      if (context.mounted) {
+                        Navigator.of(context).popUntil((route) => route.isFirst);
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã cập nhật trạng thái')));
                       }
                     } on ApiException catch (e) {
                       if (dialogContext.mounted) ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(e.message)));

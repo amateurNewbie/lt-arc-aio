@@ -58,8 +58,36 @@ class LeadActions extends _$LeadActions {
     return lead;
   }
 
-  Future<void> updateStatus(String leadId, LeadStatus status) async {
-    await ref.read(leadRepositoryProvider).updateStatus(leadId, status);
+  Future<void> updateStatus(String leadId, LeadStatus status, {String? note}) async {
+    await ref.read(leadRepositoryProvider).updateStatus(leadId, status, note: note);
+    ref.invalidate(leadListProvider);
+  }
+
+  Future<void> update(
+    String leadId, {
+    String? name,
+    String? phone,
+    String? email,
+    String? need,
+    int? budgetEstimate,
+    String? source,
+    String? ownerId,
+  }) async {
+    await ref.read(leadRepositoryProvider).update(
+          leadId,
+          name: name,
+          phone: phone,
+          email: email,
+          need: need,
+          budgetEstimate: budgetEstimate,
+          source: source,
+          ownerId: ownerId,
+        );
+    ref.invalidate(leadListProvider);
+  }
+
+  Future<void> delete(String leadId) async {
+    await ref.read(leadRepositoryProvider).delete(leadId);
     ref.invalidate(leadListProvider);
   }
 

@@ -5,11 +5,13 @@ import 'package:intl/intl.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/web_badge.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../projects/application/project_provider.dart';
 import '../../projects/data/project_repository.dart';
 import '../../users/application/user_provider.dart';
 import '../application/lead_provider.dart';
 import '../data/lead_repository.dart';
+import 'lead_edit_dialog.dart';
 
 const _leadSources = ['Giới thiệu', 'Website', 'Mạng xã hội', 'Khác'];
 
@@ -193,6 +195,13 @@ class _CreateLeadCardState extends ConsumerState<_CreateLeadCard> {
   bool _saving = false;
 
   @override
+  void initState() {
+    super.initState();
+    // FR-2.1 — mặc định người phụ trách là người tạo, vẫn cho chọn người khác.
+    _ownerId = ref.read(authProvider).value?.id;
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
@@ -230,7 +239,7 @@ class _CreateLeadCardState extends ConsumerState<_CreateLeadCard> {
         _noteController.clear();
         setState(() {
           _source = null;
-          _ownerId = null;
+          _ownerId = ref.read(authProvider).value?.id;
         });
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã lưu khách hàng tiềm năng')));
       }
@@ -462,6 +471,7 @@ class _LeadsTableCard extends ConsumerWidget {
                     DataColumn(label: Text('NGƯỜI PHỤ TRÁCH', style: _headerStyle)),
                     DataColumn(label: Text('TRẠNG THÁI', style: _headerStyle)),
                     DataColumn(label: Text('NGÀY TẠO', style: _headerStyle)),
+                    DataColumn(label: Text('THAO TÁC', style: _headerStyle)),
                   ],
                   rows: [
                     for (final lead in leads)
@@ -476,6 +486,7 @@ class _LeadsTableCard extends ConsumerWidget {
                           DataCell(Text(usersById[lead.ownerId]?.displayName ?? '—', style: const TextStyle(fontSize: 13))),
                           DataCell(_statusCell(lead, projectsById)),
                           DataCell(Text(dateFormat.format(lead.createdAt.toLocal()), style: const TextStyle(fontSize: 13))),
+                          DataCell(_actionsCell(context, ref, lead)),
                         ],
                       ),
                   ],
@@ -498,5 +509,51 @@ class _LeadsTableCard extends ConsumerWidget {
       return WebBadge('$label${code != null ? ' → $code' : ''}', variant: variant);
     }
     return WebBadge(label, variant: variant);
+  }
+
+  Widget _actionsCell(BuildContext context, WidgetRef ref, Lead lead) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.edit_outlined, size: 18),
+          tooltip: 'Sửa',
+          onPressed: () => showLeadEditDialog(context, lead),
+        ),
+        IconButton(
+          icon: Icon(Icons.delete_outline, size: 18, color: AppColors.webDestructive),
+          tooltip: 'Xoá',
+          onPressed: () => _confirmDelete(context, ref, lead),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, Lead lead) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Xoá khách hàng tiềm năng?'),
+        content: Text('Bạn có chắc muốn xoá "${lead.name}"? Hành động này không thể hoàn tác.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Huỷ')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.webDestructive),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Xoá'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await ref.read(leadActionsProvider.notifier).delete(lead.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xoá khách hàng tiềm năng')));
+      }
+    } on ApiException catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
   }
 }

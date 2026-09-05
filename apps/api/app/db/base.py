@@ -13,6 +13,7 @@ from app.models.employee import Employee  # noqa: F401
 from app.models.file_asset import FileAsset  # noqa: F401
 from app.models.fund import CashLedgerEntry, FundAccount  # noqa: F401
 from app.models.lead import Lead  # noqa: F401
+from app.models.lead_status_history import LeadStatusHistory  # noqa: F401
 from app.models.notification import Notification  # noqa: F401
 from app.models.overhead import OverheadAllocation, OverheadCost  # noqa: F401
 from app.models.payable import Payable  # noqa: F401

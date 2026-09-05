@@ -6,6 +6,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.core.permissions import Role
 from app.models.enums import LeadStatus, ProjectCategory
 from app.models.lead import Lead
+from app.models.lead_status_history import LeadStatusHistory
 from app.models.user import User
 from app.services.activity_service import log_activity
 from app.services.project_service import create_project
@@ -13,6 +14,22 @@ from app.services.project_service import create_project
 
 class LeadAlreadyConvertedError(Exception):
     pass
+
+
+class InvalidLeadStatusTransitionError(Exception):
+    pass
+
+
+# FR-2.2 — chuyển trạng thái tuần tự, không nhảy vượt bước; QUOTED là điểm rẽ
+# nhánh duy nhất (chốt thành công hoặc từ chối), CONVERTED/REJECTED là trạng
+# thái cuối, không đi tiếp được nữa.
+LEAD_STATUS_TRANSITIONS: dict[LeadStatus, set[LeadStatus]] = {
+    LeadStatus.NEW: {LeadStatus.CONSULTING},
+    LeadStatus.CONSULTING: {LeadStatus.QUOTED},
+    LeadStatus.QUOTED: {LeadStatus.CONVERTED, LeadStatus.REJECTED},
+    LeadStatus.CONVERTED: set(),
+    LeadStatus.REJECTED: set(),
+}
 
 
 async def create_lead(
@@ -53,12 +70,11 @@ async def list_leads(
     owner_id: UUID | None = None,
     search: str | None = None,
 ) -> list[Lead]:
-    """FR-2.4; RBAC §2.6 — Trưởng bộ phận chỉ xem lead của người trong bộ phận mình."""
+    """FR-2.4 — mỗi người chỉ thấy khách hàng tiềm năng mình phụ trách, trừ Admin thấy hết."""
     query = select(Lead)
 
-    if actor.role == Role.DEPARTMENT_HEAD:
-        dept_user_ids = select(User.id).where(User.department_id == actor.department_id)
-        query = query.where(Lead.owner_id.in_(dept_user_ids))
+    if actor.role != Role.ADMIN:
+        query = query.where(Lead.owner_id == actor.id)
 
     if status is not None:
         query = query.where(Lead.status == status)
@@ -74,13 +90,21 @@ async def list_leads(
     return list(result.all())
 
 
-async def update_lead_status(session: AsyncSession, lead: Lead, *, status: LeadStatus, actor: User) -> Lead:
-    """FR-2.2 — chuyển trạng thái do người phụ trách hoặc Giám đốc/Admin."""
+async def update_lead_status(
+    session: AsyncSession, lead: Lead, *, status: LeadStatus, actor: User, note: str | None = None
+) -> Lead:
+    """FR-2.2 — chuyển trạng thái tuần tự, mỗi lần chuyển ghi 1 dòng lịch sử kèm note."""
     old_status = lead.status
+    if status not in LEAD_STATUS_TRANSITIONS.get(old_status, set()):
+        raise InvalidLeadStatusTransitionError(f"Không thể chuyển từ {old_status} sang {status}")
+
     lead.status = status
     session.add(lead)
     await session.commit()
     await session.refresh(lead)
+
+    session.add(LeadStatusHistory(lead_id=lead.id, from_status=old_status, to_status=status, note=note, actor_id=actor.id))
+    await session.commit()
 
     await log_activity(
         session,

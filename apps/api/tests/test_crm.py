@@ -5,7 +5,13 @@ from app.core.permissions import Role
 from app.core.security import create_access_token
 from app.models.enums import LeadStatus, ProjectCategory
 from app.services.auth_service import create_user
-from app.services.lead_service import LeadAlreadyConvertedError, convert_to_project, create_lead
+from app.services.lead_service import (
+    InvalidLeadStatusTransitionError,
+    LeadAlreadyConvertedError,
+    convert_to_project,
+    create_lead,
+    update_lead_status,
+)
 
 
 def _auth_headers(user) -> dict:
@@ -29,12 +35,30 @@ async def test_create_and_list_lead(client: AsyncClient, session: AsyncSession) 
     assert len(resp.json()) == 1
 
 
-async def test_employee_cannot_access_leads(client: AsyncClient, session: AsyncSession) -> None:
-    """RBAC §2.6 — Nhân viên không có quyền xem khách hàng tiềm năng."""
+async def test_employee_sees_only_own_leads(client: AsyncClient, session: AsyncSession) -> None:
+    """FR-2.4 — Nhân viên xem được khách hàng tiềm năng mình phụ trách, không thấy của người khác."""
     employee = await create_user(session, email="emp1@ltarc.vn", password="x", role=Role.EMPLOYEE)
+    other = await create_user(session, email="emp2@ltarc.vn", password="x", role=Role.EMPLOYEE)
+
+    await create_lead(session, name="Lead của tôi", owner_id=employee.id)
+    await create_lead(session, name="Lead của người khác", owner_id=other.id)
 
     resp = await client.get("/api/leads", headers=_auth_headers(employee))
-    assert resp.status_code == 403
+    assert resp.status_code == 200
+    names = [item["name"] for item in resp.json()]
+    assert names == ["Lead của tôi"]
+
+
+async def test_admin_sees_all_leads(client: AsyncClient, session: AsyncSession) -> None:
+    admin = await create_user(session, email="admin1@ltarc.vn", password="x", role=Role.ADMIN)
+    employee = await create_user(session, email="emp3@ltarc.vn", password="x", role=Role.EMPLOYEE)
+
+    await create_lead(session, name="Lead A", owner_id=admin.id)
+    await create_lead(session, name="Lead B", owner_id=employee.id)
+
+    resp = await client.get("/api/leads", headers=_auth_headers(admin))
+    assert resp.status_code == 200
+    assert len(resp.json()) == 2
 
 
 async def test_convert_lead_creates_project_and_links_back(session: AsyncSession) -> None:
@@ -71,6 +95,67 @@ async def test_convert_already_converted_lead_raises(session: AsyncSession) -> N
         assert False, "expected LeadAlreadyConvertedError"
     except LeadAlreadyConvertedError:
         pass
+
+
+async def test_lead_status_transition_rejects_skipped_step(session: AsyncSession) -> None:
+    """FR-2.2 — không được nhảy vượt bước (NEW -> QUOTED thẳng là sai)."""
+    director = await create_user(session, email="d4@ltarc.vn", password="x", role=Role.DIRECTOR)
+    lead = await create_lead(session, name="Anh Văn Đức", owner_id=director.id)
+
+    try:
+        await update_lead_status(session, lead, status=LeadStatus.QUOTED, actor=director)
+        assert False, "expected InvalidLeadStatusTransitionError"
+    except InvalidLeadStatusTransitionError:
+        pass
+
+
+async def test_lead_status_transition_writes_history_with_note(client: AsyncClient, session: AsyncSession) -> None:
+    director = await create_user(session, email="d5@ltarc.vn", password="x", role=Role.DIRECTOR)
+    lead = await create_lead(session, name="Chị Ngọc Lan", owner_id=director.id)
+
+    resp = await client.patch(
+        f"/api/leads/{lead.id}",
+        headers=_auth_headers(director),
+        json={"status": "CONSULTING", "note": "Đã gọi tư vấn lần 1"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "CONSULTING"
+
+    from sqlmodel import select
+
+    from app.models.lead_status_history import LeadStatusHistory
+
+    result = await session.exec(select(LeadStatusHistory).where(LeadStatusHistory.lead_id == lead.id))
+    history = result.all()
+    assert len(history) == 1
+    assert history[0].from_status == LeadStatus.NEW
+    assert history[0].to_status == LeadStatus.CONSULTING
+    assert history[0].note == "Đã gọi tư vấn lần 1"
+    assert history[0].actor_id == director.id
+
+
+async def test_employee_cannot_edit_others_lead(client: AsyncClient, session: AsyncSession) -> None:
+    owner = await create_user(session, email="emp4@ltarc.vn", password="x", role=Role.EMPLOYEE)
+    other = await create_user(session, email="emp5@ltarc.vn", password="x", role=Role.EMPLOYEE)
+    lead = await create_lead(session, name="Lead của owner", owner_id=owner.id)
+
+    resp = await client.patch(
+        f"/api/leads/{lead.id}",
+        headers=_auth_headers(other),
+        json={"status": "CONSULTING"},
+    )
+    assert resp.status_code == 403
+
+
+async def test_delete_lead(client: AsyncClient, session: AsyncSession) -> None:
+    owner = await create_user(session, email="emp6@ltarc.vn", password="x", role=Role.EMPLOYEE)
+    lead = await create_lead(session, name="Lead sẽ xoá", owner_id=owner.id)
+
+    resp = await client.delete(f"/api/leads/{lead.id}", headers=_auth_headers(owner))
+    assert resp.status_code == 204
+
+    resp = await client.get("/api/leads", headers=_auth_headers(owner))
+    assert resp.json() == []
 
 
 async def test_department_head_sees_only_own_department_leads(client: AsyncClient, session: AsyncSession) -> None:

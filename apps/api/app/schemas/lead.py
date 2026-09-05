@@ -19,8 +19,16 @@ class LeadCreate(SQLModel):
 
 
 class LeadUpdate(SQLModel):
-    status: LeadStatus | None = None
+    name: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    need: str | None = None
+    budget_estimate: int | None = None
+    source: str | None = None
     owner_id: UUID | None = None
+    status: LeadStatus | None = None
+    note: str | None = None
+    """Ghi chú kèm theo lần chuyển trạng thái (FR-2.2) — chỉ áp dụng khi `status` được gửi kèm."""
 
 
 class LeadRead(SQLModel):

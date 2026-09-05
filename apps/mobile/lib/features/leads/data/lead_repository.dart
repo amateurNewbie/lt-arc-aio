@@ -29,6 +29,19 @@ extension LeadStatusWire on LeadStatus {
 LeadStatus leadStatusFromJson(String value) =>
     _leadStatusWire.entries.firstWhere((e) => e.value == value).key;
 
+/// FR-2.2 — chuyển trạng thái tuần tự, không nhảy vượt bước; QUOTED là điểm
+/// rẽ nhánh duy nhất (Đã chốt hoặc Từ chối). Khớp với `LEAD_STATUS_TRANSITIONS`
+/// bên backend (`app/services/lead_service.py`).
+const _leadStatusTransitions = {
+  LeadStatus.newLead: [LeadStatus.consulting],
+  LeadStatus.consulting: [LeadStatus.quoted],
+  LeadStatus.quoted: [LeadStatus.converted, LeadStatus.rejected],
+  LeadStatus.converted: <LeadStatus>[],
+  LeadStatus.rejected: <LeadStatus>[],
+};
+
+List<LeadStatus> nextValidLeadStatuses(LeadStatus current) => _leadStatusTransitions[current]!;
+
 class Lead {
   const Lead({
     required this.id,
@@ -126,10 +139,47 @@ class LeadRepository {
     }
   }
 
-  Future<Lead> updateStatus(String leadId, LeadStatus status) async {
+  Future<Lead> updateStatus(String leadId, LeadStatus status, {String? note}) async {
     try {
-      final response = await _apiClient.dio.patch('/api/leads/$leadId', data: {'status': status.wire});
+      final response = await _apiClient.dio.patch('/api/leads/$leadId', data: {'status': status.wire, 'note': note});
       return Lead.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<Lead> update(
+    String leadId, {
+    String? name,
+    String? phone,
+    String? email,
+    String? need,
+    int? budgetEstimate,
+    String? source,
+    String? ownerId,
+  }) async {
+    try {
+      final response = await _apiClient.dio.patch(
+        '/api/leads/$leadId',
+        data: {
+          if (name != null) 'name': name,
+          if (phone != null) 'phone': phone,
+          if (email != null) 'email': email,
+          if (need != null) 'need': need,
+          if (budgetEstimate != null) 'budget_estimate': budgetEstimate,
+          if (source != null) 'source': source,
+          if (ownerId != null) 'owner_id': ownerId,
+        },
+      );
+      return Lead.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<void> delete(String leadId) async {
+    try {
+      await _apiClient.dio.delete('/api/leads/$leadId');
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

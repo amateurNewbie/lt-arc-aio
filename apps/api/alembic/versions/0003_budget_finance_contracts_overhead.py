@@ -8,6 +8,7 @@ Create Date: 2026-09-04 20:34:49.626670
 from alembic import op
 import sqlalchemy as sa
 import sqlmodel
+from sqlalchemy.dialects.postgresql import ENUM as PGEnum
 
 
 # revision identifiers, used by Alembic.
@@ -72,7 +73,7 @@ def upgrade() -> None:
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('project_id', sa.Uuid(), nullable=False),
     sa.Column('code', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('type', sa.Enum('DESIGN', 'CONSTRUCTION', 'TURNKEY', name='projectcategory'), nullable=False),
+    sa.Column('type', PGEnum('DESIGN', 'CONSTRUCTION', 'TURNKEY', name='projectcategory', create_type=False), nullable=False),
     sa.Column('value', sa.Integer(), nullable=False),
     sa.Column('signed_date', sa.Date(), nullable=True),
     sa.Column('due_date', sa.Date(), nullable=True),

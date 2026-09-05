@@ -66,3 +66,13 @@ jobs:
         run: |
           ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
             "cd /opt/lt-arc && docker compose pull api && docker compose up -d --force-recreate api"
+
+      - name: Wait for API container to be ready
+        run: |
+          ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "for i in \$(seq 1 15); do docker compose exec -T api true && exit 0; sleep 2; done; exit 1"
+
+      - name: Run database migrations
+        run: |
+          ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "cd /opt/lt-arc && docker compose exec -T api uv run alembic upgrade head"

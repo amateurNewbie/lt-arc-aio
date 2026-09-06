@@ -1,11 +1,12 @@
 name: Build Android APK
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "apps/mobile/**"
-      - ".github/workflows/build-android.yml"
+  # TODO: tạm tắt auto CI khi push main; bật lại khi ổn định.
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - "apps/mobile/**"
+  #     - ".github/workflows/build-android.yml"
   workflow_dispatch:
 
 jobs:

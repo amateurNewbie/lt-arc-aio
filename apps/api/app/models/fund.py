@@ -27,7 +27,7 @@ class CashLedgerEntry(SQLModel, table=True):
     description: str
     inflow: int = Field(default=0, sa_type=BigInteger)  # BIGINT VND
     outflow: int = Field(default=0, sa_type=BigInteger)  # BIGINT VND
-    source_type: str = Field(index=True)  # "payment" | "project_cost" | "payable_settlement" | "payroll"
+    source_type: str = Field(index=True)  # "payment" | "project_cost" | "overhead_cost" | "payable_settlement" | "payroll"
     source_id: UUID
     recorded_by_id: UUID = Field(foreign_key="user.id")
     created_at: datetime = Field(default_factory=utcnow)

@@ -6,10 +6,11 @@ from sqlmodel import Field, SQLModel, UniqueConstraint
 
 
 class OverheadCost(SQLModel, table=True):
-    """FR-8.1 — chi phí chung công ty theo tháng, không gắn dự án cụ thể."""
+    """FR-8.1 — chi phí chung công ty theo tháng; ghi sổ quỹ khi có fund_account_id."""
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     cost_category_id: UUID = Field(foreign_key="costcategory.id")
+    fund_account_id: UUID | None = Field(default=None, foreign_key="fundaccount.id", index=True)
     amount: int = Field(sa_type=BigInteger)  # BIGINT VND
     date: date_type
     note: str | None = Field(default=None)

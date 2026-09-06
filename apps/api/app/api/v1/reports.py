@@ -1,7 +1,11 @@
-from fastapi import APIRouter, Depends
+from datetime import date
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Query
 
 from app.core.deps import get_session, require_roles
 from app.core.permissions import Role
+from app.models.enums import ProjectCategory
 from app.schemas.reports import CashflowReport, MonthlyPnl, ProjectPnl
 from app.services.pnl_service import all_projects_pnl, cashflow_report, monthly_pnl
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -16,7 +20,6 @@ async def cashflow_report_endpoint(
     session: AsyncSession = Depends(get_session),
     _user=Depends(require_roles(Role.ADMIN, Role.DIRECTOR)),
 ) -> dict:
-    """FR-12.4 — báo cáo dòng tiền theo tháng."""
     return await cashflow_report(session, year, month)
 
 
@@ -24,9 +27,18 @@ async def cashflow_report_endpoint(
 async def profit_loss_endpoint(
     session: AsyncSession = Depends(get_session),
     _user=Depends(require_roles(Role.ADMIN, Role.DIRECTOR)),
+    category: ProjectCategory | None = None,
+    project_id: UUID | None = None,
+    date_from: date | None = Query(default=None),
+    date_to: date | None = Query(default=None),
 ) -> list[dict]:
-    """FR-11.3 — báo cáo Lãi/Lỗ tổng hợp nhiều dự án."""
-    return await all_projects_pnl(session)
+    return await all_projects_pnl(
+        session,
+        category=category,
+        project_id=project_id,
+        date_from=date_from,
+        date_to=date_to,
+    )
 
 
 @router.get("/profit-loss/monthly", response_model=MonthlyPnl)
@@ -36,5 +48,4 @@ async def monthly_profit_loss_endpoint(
     session: AsyncSession = Depends(get_session),
     _user=Depends(require_roles(Role.ADMIN, Role.DIRECTOR)),
 ) -> dict:
-    """FR-11.5 — báo cáo Lãi/Lỗ theo từng tháng toàn studio."""
     return await monthly_pnl(session, year, month)

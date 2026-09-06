@@ -3,35 +3,20 @@ import 'package:dio/dio.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/network/api_client.dart';
 
-enum AllocationBasis { revenue, equal }
-
-const _basisWire = {AllocationBasis.revenue: 'REVENUE', AllocationBasis.equal: 'EQUAL'};
-
-extension AllocationBasisWire on AllocationBasis {
-  String get wire => _basisWire[this]!;
-  String get label => this == AllocationBasis.revenue ? 'Theo doanh thu' : 'Chia đều';
-}
-
-class OverheadAllocationPreview {
-  const OverheadAllocationPreview({required this.projectId, required this.projectCode, required this.revenueShare, required this.allocatedAmount});
-  final String projectId;
-  final String projectCode;
-  final double revenueShare;
-  final int allocatedAmount;
-
-  factory OverheadAllocationPreview.fromJson(Map<String, dynamic> json) => OverheadAllocationPreview(
-        projectId: json['project_id'] as String,
-        projectCode: json['project_code'] as String,
-        revenueShare: (json['revenue_share'] as num).toDouble(),
-        allocatedAmount: json['allocated_amount'] as int,
-      );
-}
-
 class OverheadCost {
-  const OverheadCost({required this.id, required this.costCategoryId, required this.amount, required this.date, required this.month, this.note});
+  const OverheadCost({
+    required this.id,
+    required this.costCategoryId,
+    required this.amount,
+    required this.date,
+    required this.month,
+    this.fundAccountId,
+    this.note,
+  });
 
   final String id;
   final String costCategoryId;
+  final String? fundAccountId;
   final int amount;
   final DateTime date;
   final String month;
@@ -40,10 +25,50 @@ class OverheadCost {
   factory OverheadCost.fromJson(Map<String, dynamic> json) => OverheadCost(
         id: json['id'] as String,
         costCategoryId: json['cost_category_id'] as String,
+        fundAccountId: json['fund_account_id'] as String?,
         amount: json['amount'] as int,
         date: DateTime.parse(json['date'] as String),
         month: json['month'] as String,
         note: json['note'] as String?,
+      );
+}
+
+class OverheadActiveProject {
+  const OverheadActiveProject({
+    required this.projectId,
+    required this.projectCode,
+    required this.projectName,
+    required this.status,
+  });
+
+  final String projectId;
+  final String projectCode;
+  final String projectName;
+  final String status;
+
+  factory OverheadActiveProject.fromJson(Map<String, dynamic> json) => OverheadActiveProject(
+        projectId: json['project_id'].toString(),
+        projectCode: json['project_code'] as String? ?? '',
+        projectName: json['project_name'] as String? ?? '',
+        status: json['status'] as String? ?? '',
+      );
+}
+
+class OverheadAllocationResult {
+  const OverheadAllocationResult({
+    required this.projectId,
+    required this.allocatedAmount,
+    this.revenueShare = 0,
+  });
+
+  final String projectId;
+  final int allocatedAmount;
+  final double revenueShare;
+
+  factory OverheadAllocationResult.fromJson(Map<String, dynamic> json) => OverheadAllocationResult(
+        projectId: json['project_id'].toString(),
+        allocatedAmount: json['allocated_amount'] as int,
+        revenueShare: (json['revenue_share'] as num?)?.toDouble() ?? 0,
       );
 }
 
@@ -61,7 +86,14 @@ class OverheadRepository {
     }
   }
 
-  Future<void> declareCost({required String costCategoryId, required int amount, required DateTime date, required String month, String? note}) async {
+  Future<void> declareCost({
+    required String costCategoryId,
+    required int amount,
+    required DateTime date,
+    required String month,
+    required String fundAccountId,
+    String? note,
+  }) async {
     try {
       await _apiClient.dio.post(
         '/api/overhead-costs',
@@ -70,6 +102,7 @@ class OverheadRepository {
           'amount': amount,
           'date': date.toIso8601String().split('T').first,
           'month': month,
+          'fund_account_id': fundAccountId,
           'note': note,
         },
       );
@@ -78,25 +111,33 @@ class OverheadRepository {
     }
   }
 
-  Future<List<OverheadAllocationPreview>> preview({required String month, required AllocationBasis basis}) async {
+  Future<List<OverheadActiveProject>> activeProjects() async {
     try {
-      final response = await _apiClient.dio.post('/api/overhead-costs/allocate/preview', data: {'month': month, 'basis': basis.wire});
-      return (response.data as List).map((e) => OverheadAllocationPreview.fromJson(e as Map<String, dynamic>)).toList();
+      final response = await _apiClient.dio.get('/api/overhead-costs/active-projects');
+      return (response.data as List)
+          .map((e) => OverheadActiveProject.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
   }
 
-  Future<List<OverheadAllocationPreview>> apply({required String month, required AllocationBasis basis}) async {
+  Future<List<OverheadAllocationResult>> applyManual({
+    required String month,
+    required List<({String projectId, int allocatedAmount})> items,
+  }) async {
     try {
-      final response = await _apiClient.dio.post('/api/overhead-costs/allocate', data: {'month': month, 'basis': basis.wire});
+      final response = await _apiClient.dio.post(
+        '/api/overhead-costs/allocate',
+        data: {
+          'month': month,
+          'items': [
+            for (final i in items) {'project_id': i.projectId, 'allocated_amount': i.allocatedAmount},
+          ],
+        },
+      );
       return (response.data as List)
-          .map((e) => OverheadAllocationPreview(
-                projectId: e['project_id'] as String,
-                projectCode: '',
-                revenueShare: (e['revenue_share'] as num).toDouble(),
-                allocatedAmount: e['allocated_amount'] as int,
-              ))
+          .map((e) => OverheadAllocationResult.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList();
     } on DioException catch (e) {
       throw ApiException.fromDio(e);

@@ -4,6 +4,8 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.enums import WorkItemStatus
+from app.models.task import Task
+from app.models.user import User
 from app.models.work_item import WorkItem
 
 
@@ -13,21 +15,35 @@ async def create_work_item(
     project_id: UUID,
     department_id: UUID,
     name: str,
-    unit: str,
-    quantity: float,
-    unit_price: int,
+    unit: str = "-",
+    quantity: float = 1,
+    unit_price: int = 0,
+    actor: User | None = None,
+    create_linked_task: bool = True,
 ) -> WorkItem:
-    """FR-5.5 — thành tiền tự tính từ khối lượng × đơn giá."""
+    """Tạo hạng mục; tuỳ chọn tạo luôn 1 công việc liên kết ở tab Công việc."""
     work_item = WorkItem(
         project_id=project_id,
         department_id=department_id,
         name=name,
-        unit=unit,
+        unit=unit or "-",
         quantity=quantity,
         unit_price=unit_price,
         amount=round(quantity * unit_price),
     )
     session.add(work_item)
+    await session.flush()
+
+    if create_linked_task and actor is not None:
+        session.add(
+            Task(
+                title=name,
+                project_id=project_id,
+                department_id=department_id,
+                work_item_id=work_item.id,
+            )
+        )
+
     await session.commit()
     await session.refresh(work_item)
     return work_item
@@ -39,8 +55,7 @@ async def list_work_items(session: AsyncSession, project_id: UUID) -> list[WorkI
 
 
 async def update_progress(session: AsyncSession, work_item: WorkItem, *, progress: int) -> WorkItem:
-    """FR-5.5 — cập nhật % hoàn thành hạng mục; 100% tự chuyển DONE, dưới 100%
-    tự chuyển IN_PROGRESS nếu đang NOT_STARTED/DONE."""
+    """Cập nhật % hoàn thành hạng mục thủ công (admin); thường sync từ task."""
     progress = max(0, min(100, progress))
     work_item.progress = progress
     if progress == 100:

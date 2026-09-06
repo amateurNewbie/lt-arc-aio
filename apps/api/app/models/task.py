@@ -16,6 +16,7 @@ class Task(SQLModel, table=True):
 
     project_id: UUID = Field(foreign_key="project.id", index=True)
     department_id: UUID = Field(foreign_key="department.id", index=True)
+    work_item_id: UUID | None = Field(default=None, foreign_key="workitem.id", index=True)
     parent_task_id: UUID | None = Field(default=None, foreign_key="task.id", index=True)
 
     due_date: date | None = Field(default=None)

@@ -9,9 +9,10 @@ class WorkItemCreate(SQLModel):
     project_id: UUID
     department_id: UUID
     name: str
-    unit: str
-    quantity: float
-    unit_price: int
+    unit: str = "-"
+    quantity: float = 1
+    unit_price: int = 0
+    create_task: bool = True
 
 
 class WorkItemProgressUpdate(SQLModel):

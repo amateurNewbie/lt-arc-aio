@@ -23,6 +23,7 @@ from app.api.v1 import (
     reports,
     roles,
     settings,
+    stage_templates,
     tasks,
     users,
     work_items,
@@ -56,3 +57,4 @@ api_router.include_router(payroll.router)
 api_router.include_router(files.router)
 api_router.include_router(notifications.router)
 api_router.include_router(settings.router)
+api_router.include_router(stage_templates.router)

@@ -13,7 +13,7 @@ from app.schemas.role_permission import RolePermissionEntry
 async def ensure_role_permission_defaults(session: AsyncSession) -> None:
     """Đảm bảo đủ 4×6 dòng — seed theo rule cứng hiện tại nếu thiếu."""
     existing = await session.exec(select(RolePermissionDefault))
-    present = {(r.role, r.permission_group) for r in existing.all()}
+    present = {(Role(r.role), PermissionGroup(r.permission_group)) for r in existing.all()}
     missing = False
     for role in Role:
         for group in PermissionGroup:
@@ -35,9 +35,16 @@ async def list_role_permission_matrix(session: AsyncSession) -> list[RolePermiss
     await ensure_role_permission_defaults(session)
     result = await session.exec(select(RolePermissionDefault))
     rows = list(result.all())
-    rows.sort(key=lambda r: (list(Role).index(r.role), list(PermissionGroup).index(r.permission_group)))
+
+    def _role(r: RolePermissionDefault) -> Role:
+        return r.role if isinstance(r.role, Role) else Role(r.role)
+
+    def _group(r: RolePermissionDefault) -> PermissionGroup:
+        return r.permission_group if isinstance(r.permission_group, PermissionGroup) else PermissionGroup(r.permission_group)
+
+    rows.sort(key=lambda r: (list(Role).index(_role(r)), list(PermissionGroup).index(_group(r))))
     return [
-        RolePermissionEntry(role=r.role, permission_group=r.permission_group, enabled=r.enabled)
+        RolePermissionEntry(role=_role(r), permission_group=_group(r), enabled=r.enabled)
         for r in rows
     ]
 
@@ -57,7 +64,13 @@ async def update_role_permission_matrix(
     by_key = {(e.role, e.permission_group): e.enabled for e in entries}
     result = await session.exec(select(RolePermissionDefault))
     for row in result.all():
-        row.enabled = by_key[(row.role, row.permission_group)]
+        role = row.role if isinstance(row.role, Role) else Role(row.role)
+        group = (
+            row.permission_group
+            if isinstance(row.permission_group, PermissionGroup)
+            else PermissionGroup(row.permission_group)
+        )
+        row.enabled = by_key[(role, group)]
         session.add(row)
 
     await session.commit()
@@ -72,8 +85,8 @@ async def role_has_default_grant(
     """Đọc quyền mặc định từ DB; fallback cứng nếu chưa seed."""
     result = await session.exec(
         select(RolePermissionDefault).where(
-            RolePermissionDefault.role == role,
-            RolePermissionDefault.permission_group == group,
+            RolePermissionDefault.role == role.value,
+            RolePermissionDefault.permission_group == group.value,
         )
     )
     row = result.first()

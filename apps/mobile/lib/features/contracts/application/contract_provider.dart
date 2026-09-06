@@ -27,8 +27,17 @@ class ContractActions extends _$ContractActions {
     required ProjectCategory type,
     required int value,
     required List<MilestoneInput> milestones,
+    DateTime? signedDate,
+    DateTime? dueDate,
   }) async {
-    final contract = await ref.read(contractRepositoryProvider).create(projectId: projectId, type: type, value: value, milestones: milestones);
+    final contract = await ref.read(contractRepositoryProvider).create(
+          projectId: projectId,
+          type: type,
+          value: value,
+          milestones: milestones,
+          signedDate: signedDate,
+          dueDate: dueDate,
+        );
     if (!ref.mounted) return contract;
     ref.invalidate(contractListProvider);
     ref.invalidate(contractListAllProvider);

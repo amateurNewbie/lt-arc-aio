@@ -5,12 +5,13 @@ import 'package:intl/intl.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/web_badge.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../funds/application/fund_provider.dart';
 import '../../projects/application/project_provider.dart';
 import '../../projects/data/project_repository.dart';
 import '../application/contract_provider.dart';
 import '../data/contract_repository.dart';
-import 'contract_form_sheet.dart';
+import 'contract_create_form.dart';
 import '../../../shared/widgets/app_toast.dart';
 
 WebBadgeVariant _statusVariant(ContractStatus s) => switch (s) {
@@ -20,9 +21,8 @@ WebBadgeVariant _statusVariant(ContractStatus s) => switch (s) {
       ContractStatus.settled => WebBadgeVariant.outline,
     };
 
-/// Trang "Hợp đồng" — bám `LT-ARC-Web-UI_1.html` (`data-if="isContracts"`):
-/// 4 KPI, bảng hợp đồng toàn công ty, ghi nhận thu tiền theo đợt, chi tiết
-/// tiến độ thanh toán của hợp đồng đang chọn.
+/// Trang "Hợp đồng" — bám `LT-ARC-Web-UI_2.html` (`data-if="isContracts"`):
+/// form tạo HĐ (chọn DA → bind loại/giá trị), 4 KPI, bảng HĐ, thu theo đợt.
 ///
 /// Ghi chú trung thực: `Contract.status` luôn là ACTIVE — hệ thống hiện chưa
 /// có tác vụ nào tự chuyển Sắp hết hạn/Đã thanh lý/Đã tất toán (không có ở
@@ -37,22 +37,7 @@ class ContractsPage extends ConsumerStatefulWidget {
 
 class _ContractsPageState extends ConsumerState<ContractsPage> {
   Contract? _selected;
-
-  Future<void> _pickProjectAndCreate(BuildContext context, List<Project> projects) async {
-    final projectId = await showDialog<String>(
-      context: context,
-      builder: (_) => SimpleDialog(
-        title: const Text('Chọn dự án để tạo hợp đồng'),
-        children: [
-          for (final p in projects)
-            SimpleDialogOption(onPressed: () => Navigator.of(context).pop(p.id), child: Text('${p.name} (${p.code})')),
-        ],
-      ),
-    );
-    if (projectId != null && context.mounted) {
-      await showContractFormSheet(context, projectId);
-    }
-  }
+  bool _showCreateForm = false;
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +45,8 @@ class _ContractsPageState extends ConsumerState<ContractsPage> {
     final projectsAsync = ref.watch(projectListProvider());
     final currency = NumberFormat.decimalPattern('vi');
     final dateFormat = DateFormat('dd/MM/yyyy');
+    final role = ref.watch(authProvider).value?.role;
+    final canCreate = role == 'ADMIN' || role == 'DIRECTOR';
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -82,14 +69,25 @@ class _ContractsPageState extends ConsumerState<ContractsPage> {
                       ],
                     ),
                   ),
-                  FilledButton.icon(
-                    onPressed: () => _pickProjectAndCreate(context, projectsAsync.value ?? const []),
-                    style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Tạo hợp đồng'),
-                  ),
+                  if (canCreate)
+                    FilledButton.icon(
+                      onPressed: () => setState(() => _showCreateForm = !_showCreateForm),
+                      style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                      icon: Icon(_showCreateForm ? Icons.close : Icons.add, size: 18),
+                      label: Text(_showCreateForm ? 'Đóng form' : 'Tạo hợp đồng'),
+                    ),
                 ],
               ),
+              if (_showCreateForm) ...[
+                const SizedBox(height: 16),
+                ContractCreateForm(
+                  onCancel: () => setState(() => _showCreateForm = false),
+                  onCreated: (c) => setState(() {
+                    _showCreateForm = false;
+                    _selected = c;
+                  }),
+                ),
+              ],
               const SizedBox(height: 20),
               contractsAsync.when(
                 data: (contracts) {

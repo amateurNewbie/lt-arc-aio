@@ -9,7 +9,19 @@ part 'reports_provider.g.dart';
 ReportsRepository reportsRepository(Ref ref) => ReportsRepository(ref.watch(apiClientProvider));
 
 @riverpod
-Future<List<ProjectPnl>> profitLossReport(Ref ref) => ref.watch(reportsRepositoryProvider).profitLoss();
+Future<List<ProjectPnl>> profitLossReport(
+  Ref ref, {
+  String? category,
+  String? projectId,
+  DateTime? dateFrom,
+  DateTime? dateTo,
+}) =>
+    ref.watch(reportsRepositoryProvider).profitLoss(
+          category: category,
+          projectId: projectId,
+          dateFrom: dateFrom,
+          dateTo: dateTo,
+        );
 
 @riverpod
 Future<CashflowReport> cashflowReport(Ref ref, {required int year, required int month}) =>

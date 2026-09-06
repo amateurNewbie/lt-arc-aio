@@ -13,6 +13,7 @@ from app.services.notification_service import run_daily_reminders
 from app.services.project_service import create_project
 from app.services.settings_service import update_company_settings
 from app.services.task_service import create_task
+from app.services.work_item_service import create_work_item
 
 
 def _auth_headers(user) -> dict:
@@ -62,12 +63,21 @@ async def test_daily_reminders_notify_assignee_of_task_due_soon(session: AsyncSe
 
     await update_company_settings(session, {"task_reminder_days": 2})
     due_date = (utcnow() + timedelta(days=2)).date()
+    work_item = await create_work_item(
+        session,
+        project_id=project.id,
+        department_id=dept.id,
+        name="Hạng mục nghiệm thu",
+        actor=director,
+        create_linked_task=False,
+    )
 
     await create_task(
         session,
         title="Nghiệm thu phần thô",
         project_id=project.id,
         department_id=dept.id,
+        work_item_id=work_item.id,
         actor=director,
         due_date=due_date,
         priority=TaskPriority.HIGH,

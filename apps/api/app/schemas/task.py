@@ -10,6 +10,7 @@ class TaskCreate(SQLModel):
     title: str
     project_id: UUID
     department_id: UUID
+    work_item_id: UUID | None = None
     description: str | None = None
     parent_task_id: UUID | None = None
     due_date: date | None = None
@@ -23,6 +24,7 @@ class TaskRead(SQLModel):
     description: str | None
     project_id: UUID
     department_id: UUID
+    work_item_id: UUID | None
     parent_task_id: UUID | None
     due_date: date | None
     priority: TaskPriority

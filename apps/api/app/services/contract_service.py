@@ -15,7 +15,13 @@ class InvalidMilestoneRatioError(Exception):
 
 
 async def generate_contract_code(session: AsyncSession, project: Project) -> str:
-    return f"HD-{project.code.removeprefix('LT-')}"
+    """Mã HĐ theo mã dự án; thêm hậu tố -02, -03… nếu đã có HĐ cùng base."""
+    base = f"HD-{project.code.removeprefix('LT-')}"
+    result = await session.exec(select(Contract).where(Contract.project_id == project.id))
+    existing = list(result.all())
+    if not existing:
+        return base
+    return f"{base}-{len(existing) + 1:02d}"
 
 
 async def create_contract(

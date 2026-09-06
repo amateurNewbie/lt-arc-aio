@@ -1,13 +1,13 @@
 from datetime import date
+from uuid import UUID
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.cost_category import CostCategory
-from app.models.enums import AllocationBasis, CostCategoryScope, ProjectStatus
+from app.models.enums import CostCategoryScope
+from app.models.fund import CashLedgerEntry, FundAccount
 from app.models.overhead import OverheadAllocation, OverheadCost
-from app.models.payment import Payment
-from app.models.project import Project
 from app.models.user import User
 from app.services.activity_service import log_activity
 
@@ -20,24 +20,65 @@ class AllocationAlreadyAppliedError(Exception):
     pass
 
 
+class OverheadAllocationMismatchError(Exception):
+    pass
+
+
 async def declare_cost(
     session: AsyncSession,
     *,
-    cost_category_id: str,
+    cost_category_id: UUID,
     amount: int,
     on: date,
     month: str,
+    fund_account_id: UUID,
+    actor: User,
     note: str | None = None,
 ) -> OverheadCost:
-    """FR-8.1 — chi phí chung công ty, không gắn dự án cụ thể."""
+    """Chi phí chung công ty + ghi sổ quỹ (outflow)."""
     category = await session.get(CostCategory, cost_category_id)
     if category is None or category.scope != CostCategoryScope.COMPANY:
         raise InvalidOverheadCategoryError("Hạng mục chi phí phải thuộc phạm vi Chi phí chung công ty")
 
-    cost = OverheadCost(cost_category_id=cost_category_id, amount=amount, date=on, month=month, note=note)
+    fund = await session.get(FundAccount, fund_account_id)
+    if fund is None:
+        raise ValueError("Fund account not found")
+
+    cost = OverheadCost(
+        cost_category_id=cost_category_id,
+        fund_account_id=fund_account_id,
+        amount=amount,
+        date=on,
+        month=month,
+        note=note,
+    )
     session.add(cost)
+    await session.flush()
+
+    session.add(
+        CashLedgerEntry(
+            fund_account_id=fund_account_id,
+            date=on,
+            description=note or f"Chi phí chung — {category.name}",
+            inflow=0,
+            outflow=amount,
+            source_type="overhead_cost",
+            source_id=cost.id,
+            recorded_by_id=actor.id,
+        )
+    )
+    fund.balance -= amount
+    session.add(fund)
+
     await session.commit()
     await session.refresh(cost)
+
+    await log_activity(
+        session,
+        icon="building",
+        title=f"Chi phí chung {amount:,} ₫ — {category.name}",
+        user_id=actor.id,
+    )
     return cost
 
 
@@ -46,78 +87,38 @@ async def _month_total_overhead(session: AsyncSession, month: str) -> int:
     return sum(c.amount for c in result.all())
 
 
-async def _project_revenue_in_month(session: AsyncSession, month: str) -> dict:
-    """Doanh thu (tổng Payment) từng dự án trong tháng — chỉ tính dự án có thu > 0."""
-    year, mon = month.split("-")
-    result = await session.exec(select(Payment))
-    revenue: dict = {}
-    for payment in result.all():
-        if f"{payment.date.year:04d}-{payment.date.month:02d}" == f"{year}-{mon}":
-            revenue[payment.project_id] = revenue.get(payment.project_id, 0) + payment.amount
-    return revenue
-
-
-async def _compute_allocation(session: AsyncSession, month: str, basis: AllocationBasis) -> list[dict]:
-    """FR-8.2 — công thức theo doanh thu (mặc định) hoặc chia đều."""
-    total_overhead = await _month_total_overhead(session, month)
-    if total_overhead == 0:
-        return []
-
-    if basis == AllocationBasis.REVENUE:
-        revenue_by_project = await _project_revenue_in_month(session, month)
-        total_revenue = sum(revenue_by_project.values())
-        if total_revenue == 0:
-            return []
-        items = []
-        for project_id, revenue in revenue_by_project.items():
-            share = revenue / total_revenue
-            project = await session.get(Project, project_id)
-            items.append(
-                {
-                    "project_id": project_id,
-                    "project_code": project.code,
-                    "revenue_share": share,
-                    "allocated_amount": round(total_overhead * share),
-                }
-            )
-        return items
-
-    # EQUAL — chia đều theo số dự án đang hoạt động (status IN_PROGRESS) trong tháng
-    result = await session.exec(select(Project).where(Project.status == ProjectStatus.IN_PROGRESS))
-    active_projects = result.all()
-    if not active_projects:
-        return []
-    share_amount = round(total_overhead / len(active_projects))
-    return [
-        {
-            "project_id": p.id,
-            "project_code": p.code,
-            "revenue_share": 0.0,
-            "allocated_amount": share_amount,
-        }
-        for p in active_projects
-    ]
-
-
-async def preview_allocation(session: AsyncSession, month: str, basis: AllocationBasis) -> list[dict]:
-    """FR-8.3 bước 1 — XEM TRƯỚC, không ghi DB."""
-    return await _compute_allocation(session, month, basis)
-
-
-async def apply_allocation(session: AsyncSession, month: str, basis: AllocationBasis, actor: User) -> list[OverheadAllocation]:
-    """FR-8.3 bước 2 — XÁC NHẬN & ÁP DỤNG; idempotent theo tháng (không tính trùng)."""
+async def apply_manual_allocation(
+    session: AsyncSession,
+    *,
+    month: str,
+    items: list[dict],
+    actor: User,
+) -> list[OverheadAllocation]:
+    """Phân bổ tay: tổng allocated_amount phải = tổng chi phí chung tháng."""
     existing = await session.exec(select(OverheadAllocation).where(OverheadAllocation.month == month))
     if existing.first() is not None:
         raise AllocationAlreadyAppliedError(f"Tháng {month} đã được phân bổ trước đó")
 
-    items = await _compute_allocation(session, month, basis)
-    allocations = []
-    for item in items:
+    total_overhead = await _month_total_overhead(session, month)
+    if total_overhead <= 0:
+        raise OverheadAllocationMismatchError("Tháng này chưa có chi phí chung để phân bổ")
+
+    cleaned = [i for i in items if int(i.get("allocated_amount") or 0) > 0]
+    allocated_sum = sum(int(i["allocated_amount"]) for i in cleaned)
+    if allocated_sum != total_overhead:
+        raise OverheadAllocationMismatchError(
+            f"Tổng phân bổ ({allocated_sum:,}) phải bằng tổng chi phí chung tháng ({total_overhead:,})"
+        )
+
+    allocations: list[OverheadAllocation] = []
+    for item in cleaned:
+        amount = int(item["allocated_amount"])
+        share = (amount / total_overhead) if total_overhead else 0.0
         allocation = OverheadAllocation(
             month=month,
             project_id=item["project_id"],
-            revenue_share=item["revenue_share"],
-            allocated_amount=item["allocated_amount"],
+            revenue_share=share,
+            allocated_amount=amount,
         )
         session.add(allocation)
         allocations.append(allocation)

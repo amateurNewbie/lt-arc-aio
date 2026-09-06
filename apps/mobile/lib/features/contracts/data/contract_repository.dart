@@ -126,12 +126,27 @@ class Contract {
 }
 
 class MilestoneInput {
-  const MilestoneInput({required this.name, required this.ratio, this.isRetention = false});
+  const MilestoneInput({
+    required this.name,
+    required this.ratio,
+    this.condition,
+    this.dueDate,
+    this.isRetention = false,
+  });
+
   final String name;
   final double ratio;
+  final String? condition;
+  final DateTime? dueDate;
   final bool isRetention;
 
-  Map<String, dynamic> toJson() => {'name': name, 'ratio': ratio, 'is_retention': isRetention};
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'ratio': ratio,
+        if (condition != null && condition!.trim().isNotEmpty) 'condition': condition!.trim(),
+        if (dueDate != null) 'due_date': dueDate!.toIso8601String().split('T').first,
+        'is_retention': isRetention,
+      };
 }
 
 class ContractRepository {
@@ -162,11 +177,20 @@ class ContractRepository {
     required project_data.ProjectCategory type,
     required int value,
     required List<MilestoneInput> milestones,
+    DateTime? signedDate,
+    DateTime? dueDate,
   }) async {
     try {
       final response = await _apiClient.dio.post(
         '/api/projects/$projectId/contracts',
-        data: {'type': type.wire, 'value': value, 'milestones': milestones.map((m) => m.toJson()).toList()},
+        data: {
+          'project_id': projectId,
+          'type': type.wire,
+          'value': value,
+          'milestones': milestones.map((m) => m.toJson()).toList(),
+          if (signedDate != null) 'signed_date': signedDate.toIso8601String().split('T').first,
+          if (dueDate != null) 'due_date': dueDate.toIso8601String().split('T').first,
+        },
       );
       return Contract.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {

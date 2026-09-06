@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../auth/application/auth_provider.dart';
+import '../../work_items/application/work_item_provider.dart';
 import '../data/task_repository.dart';
 
 part 'task_provider.g.dart';
@@ -23,6 +24,7 @@ class TaskActions extends _$TaskActions {
     required String title,
     required String projectId,
     required String departmentId,
+    required String workItemId,
     String? parentTaskId,
     String? assigneeId,
     DateTime? dueDate,
@@ -32,6 +34,7 @@ class TaskActions extends _$TaskActions {
           title: title,
           projectId: projectId,
           departmentId: departmentId,
+          workItemId: workItemId,
           parentTaskId: parentTaskId,
           assigneeId: assigneeId,
           dueDate: dueDate,
@@ -39,6 +42,7 @@ class TaskActions extends _$TaskActions {
         );
     if (!ref.mounted) return task;
     ref.invalidate(taskListProvider);
+    ref.invalidate(workItemListProvider);
     return task;
   }
 
@@ -46,6 +50,7 @@ class TaskActions extends _$TaskActions {
     final task = await ref.read(taskRepositoryProvider).updateProgress(taskId, progress);
     if (!ref.mounted) return task;
     ref.invalidate(taskListProvider);
+    ref.invalidate(workItemListProvider);
     return task;
   }
 }

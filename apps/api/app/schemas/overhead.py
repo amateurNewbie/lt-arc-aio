@@ -1,39 +1,38 @@
-from datetime import date as date_type
+from datetime import date
 from uuid import UUID
 
 from sqlmodel import SQLModel
 
-from app.models.enums import AllocationBasis
+from app.models.enums import CostCategoryScope  # noqa: F401 — kept for schema imports consistency
 
 
 class OverheadCostCreate(SQLModel):
     cost_category_id: UUID
     amount: int
-    date: date_type
+    date: date
+    fund_account_id: UUID
     note: str | None = None
     month: str
-    """"YYYY-MM"."""
 
 
 class OverheadCostRead(SQLModel):
     id: UUID
     cost_category_id: UUID
+    fund_account_id: UUID | None
     amount: int
-    date: date_type
+    date: date
     note: str | None
     month: str
 
 
-class OverheadAllocationPreviewItem(SQLModel):
+class OverheadAllocationItemInput(SQLModel):
     project_id: UUID
-    project_code: str
-    revenue_share: float
     allocated_amount: int
 
 
-class OverheadAllocationRequest(SQLModel):
+class OverheadManualAllocationRequest(SQLModel):
     month: str
-    basis: AllocationBasis = AllocationBasis.REVENUE
+    items: list[OverheadAllocationItemInput]
 
 
 class OverheadAllocationRead(SQLModel):

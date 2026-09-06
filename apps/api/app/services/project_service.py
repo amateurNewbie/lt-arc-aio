@@ -7,6 +7,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.core.clock import utcnow
 from app.core.permissions import Role
 from app.models.enums import ProjectCategory, ProjectStatus
+from app.services.stage_template_service import active_template_keys, list_templates
 from app.models.project import (
     Project,
     ProjectDepartmentHead,
@@ -97,6 +98,16 @@ async def create_project(
 ) -> Project:
     """FR-3.1 — chỉ ADMIN/DIRECTOR tạo dự án (kiểm tra ở router qua require_roles)."""
     code = await generate_project_code(session)
+    if stage_progress is not None:
+        resolved_stages = normalize_stage_progress(stage_progress)
+    else:
+        templates = await list_templates(session, active_only=True)
+        if templates:
+            resolved_stages = {
+                t.key: {"progress": 0, "deadline": None, "name": t.name} for t in templates
+            }
+        else:
+            resolved_stages = default_stage_progress()
     project = Project(
         code=code,
         name=name,
@@ -111,7 +122,7 @@ async def create_project(
         lead_id=lead_id,
         start_date=start_date,
         due_date=due_date,
-        stage_progress=normalize_stage_progress(stage_progress) if stage_progress is not None else default_stage_progress(),
+        stage_progress=resolved_stages,
         progress=0,
     )
     session.add(project)

@@ -62,9 +62,22 @@ class ReportsRepository {
 
   final ApiClient _apiClient;
 
-  Future<List<ProjectPnl>> profitLoss() async {
+  Future<List<ProjectPnl>> profitLoss({
+    String? category,
+    String? projectId,
+    DateTime? dateFrom,
+    DateTime? dateTo,
+  }) async {
     try {
-      final response = await _apiClient.dio.get('/api/reports/profit-loss');
+      final response = await _apiClient.dio.get(
+        '/api/reports/profit-loss',
+        queryParameters: {
+          if (category != null) 'category': category,
+          if (projectId != null) 'project_id': projectId,
+          if (dateFrom != null) 'date_from': dateFrom.toIso8601String().split('T').first,
+          if (dateTo != null) 'date_to': dateTo.toIso8601String().split('T').first,
+        },
+      );
       return (response.data as List).map((e) => ProjectPnl.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw ApiException.fromDio(e);

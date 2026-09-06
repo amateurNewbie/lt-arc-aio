@@ -65,14 +65,16 @@ const projectStageLabels = {
 };
 
 class ProjectStageProgress {
-  const ProjectStageProgress({required this.progress, this.deadline});
+  const ProjectStageProgress({required this.progress, this.deadline, this.name});
 
   final int progress;
   final DateTime? deadline;
+  final String? name;
 
   Map<String, dynamic> toJson() => {
         'progress': progress,
         'deadline': deadline?.toIso8601String().split('T').first,
+        if (name != null && name!.isNotEmpty) 'name': name,
       };
 
   factory ProjectStageProgress.fromJson(dynamic raw) {
@@ -82,6 +84,7 @@ class ProjectStageProgress {
       return ProjectStageProgress(
         progress: (map['progress'] as num?)?.toInt() ?? 0,
         deadline: deadlineRaw is String && deadlineRaw.isNotEmpty ? DateTime.tryParse(deadlineRaw) : null,
+        name: map['name'] as String?,
       );
     }
     if (raw is num) return ProjectStageProgress(progress: raw.toInt());
@@ -90,16 +93,14 @@ class ProjectStageProgress {
 }
 
 Map<String, ProjectStageProgress> defaultStageProgressMap() => {
-      for (final key in projectStageKeys) key: const ProjectStageProgress(progress: 0),
+      for (final key in projectStageKeys) key: ProjectStageProgress(progress: 0, name: projectStageLabels[key]),
     };
 
 Map<String, ProjectStageProgress> stageProgressFromJson(Map<String, dynamic>? raw) {
-  final result = defaultStageProgressMap();
-  if (raw == null) return result;
-  for (final key in projectStageKeys) {
-    if (raw.containsKey(key)) result[key] = ProjectStageProgress.fromJson(raw[key]);
-  }
-  return result;
+  if (raw == null || raw.isEmpty) return defaultStageProgressMap();
+  return {
+    for (final e in raw.entries) e.key.toString(): ProjectStageProgress.fromJson(e.value),
+  };
 }
 
 Map<String, dynamic> stageProgressToJson(Map<String, ProjectStageProgress> stages) => {

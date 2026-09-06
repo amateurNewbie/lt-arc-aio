@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../../../core/api/api_exception.dart';
 import '../../cost_categories/application/cost_category_provider.dart';
 import '../../cost_categories/data/cost_category_repository.dart';
+import '../../funds/application/fund_provider.dart';
+import '../../funds/data/fund_repository.dart';
 import '../application/overhead_provider.dart';
 import '../../../shared/widgets/app_toast.dart';
 
@@ -23,12 +25,23 @@ class _OverheadCostFormSheetState extends ConsumerState<_OverheadCostFormSheet> 
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
   String? _categoryId;
+  String? _fundId;
   DateTime _date = DateTime.now();
   bool _saving = false;
 
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
   Future<void> _submit() async {
-    final amount = int.tryParse(_amountController.text) ?? 0;
-    if (amount <= 0 || _categoryId == null) return;
+    final amount = int.tryParse(_amountController.text.trim().replaceAll('.', '').replaceAll(',', '')) ?? 0;
+    if (amount <= 0 || _categoryId == null || _fundId == null) {
+      showAppToast(context, 'Chọn hạng mục, quỹ và nhập số tiền', error: true);
+      return;
+    }
     setState(() => _saving = true);
     final close = PendingDialogClose.of(context);
     try {
@@ -38,9 +51,10 @@ class _OverheadCostFormSheetState extends ConsumerState<_OverheadCostFormSheet> 
             amount: amount,
             date: _date,
             month: month,
+            fundAccountId: _fundId!,
             note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
           );
-      close.success('Đã thêm chi phí chung');
+      close.success('Đã thêm chi phí chung (đã ghi sổ quỹ)');
     } on ApiException catch (e) {
       if (mounted) showAppToast(context, e.message, error: true);
     } finally {
@@ -51,6 +65,7 @@ class _OverheadCostFormSheetState extends ConsumerState<_OverheadCostFormSheet> 
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(costCategoryListProvider(scope: CostCategoryScope.company));
+    final fundsAsync = ref.watch(fundListProvider);
 
     return Padding(
       padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: MediaQuery.of(context).viewInsets.bottom + 16),
@@ -59,18 +74,37 @@ class _OverheadCostFormSheetState extends ConsumerState<_OverheadCostFormSheet> 
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Khai báo chi phí chung', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text('Khoản này sẽ ghi chi vào sổ quỹ đã chọn.', style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 12),
           categoriesAsync.when(
             data: (categories) => DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: 'Hạng mục (phạm vi công ty)'),
-              items: [for (final c in categories) DropdownMenuItem(value: c.id, child: Text(c.name))],
+              initialValue: _categoryId,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Hạng mục (phạm vi công ty) *'),
+              items: [for (final c in categories) DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis))],
               onChanged: (v) => setState(() => _categoryId = v),
             ),
             loading: () => const LinearProgressIndicator(),
             error: (e, _) => Text('Lỗi: $e'),
           ),
           const SizedBox(height: 12),
-          TextField(controller: _amountController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Số tiền (₫)')),
+          fundsAsync.when(
+            data: (funds) => DropdownButtonFormField<String>(
+              initialValue: _fundId,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Quỹ thực chi *'),
+              items: [
+                for (final f in funds)
+                  DropdownMenuItem(value: f.id, child: Text('${f.name} (${f.type.label})', overflow: TextOverflow.ellipsis)),
+              ],
+              onChanged: (v) => setState(() => _fundId = v),
+            ),
+            loading: () => const LinearProgressIndicator(),
+            error: (e, _) => Text('Lỗi tải quỹ: $e'),
+          ),
+          const SizedBox(height: 12),
+          TextField(controller: _amountController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Số tiền (₫) *')),
           const SizedBox(height: 12),
           TextField(controller: _noteController, decoration: const InputDecoration(labelText: 'Diễn giải')),
           const SizedBox(height: 12),

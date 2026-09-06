@@ -22,17 +22,13 @@ class WorkItemActions extends _$WorkItemActions {
     required String projectId,
     required String departmentId,
     required String name,
-    required String unit,
-    required double quantity,
-    required int unitPrice,
+    bool createTask = true,
   }) async {
     await ref.read(workItemRepositoryProvider).create(
           projectId: projectId,
           departmentId: departmentId,
           name: name,
-          unit: unit,
-          quantity: quantity,
-          unitPrice: unitPrice,
+          createTask: createTask,
         );
     if (!ref.mounted) return;
     ref.invalidate(workItemListProvider);

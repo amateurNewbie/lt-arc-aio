@@ -15,7 +15,9 @@ class ContractMilestoneCreate(SQLModel):
 
 
 class ContractCreate(SQLModel):
-    project_id: UUID
+    """`project_id` trong body tuỳ chọn — endpoint path đã có project_id."""
+
+    project_id: UUID | None = None
     type: ProjectCategory
     value: int
     signed_date: date_type | None = None

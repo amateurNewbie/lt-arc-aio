@@ -16,6 +16,7 @@ from app.models.lead import Lead  # noqa: F401
 from app.models.lead_status_history import LeadStatusHistory  # noqa: F401
 from app.models.notification import Notification  # noqa: F401
 from app.models.overhead import OverheadAllocation, OverheadCost  # noqa: F401
+from app.models.project_stage_template import ProjectStageTemplate  # noqa: F401
 from app.models.payable import Payable  # noqa: F401
 from app.models.pay_profile import PayProfile  # noqa: F401
 from app.models.payment import Payment  # noqa: F401

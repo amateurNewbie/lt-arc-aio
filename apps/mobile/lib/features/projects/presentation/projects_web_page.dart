@@ -31,7 +31,7 @@ class ProjectsWebPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final filter = ref.watch(projectFilterProvider);
     final projectsAsync = ref.watch(projectListProvider(status: filter.status, category: filter.category, search: filter.search));
-    final pnlAsync = ref.watch(profitLossReportProvider);
+    final pnlAsync = ref.watch(profitLossReportProvider());
 
     return Scaffold(
       body: SingleChildScrollView(

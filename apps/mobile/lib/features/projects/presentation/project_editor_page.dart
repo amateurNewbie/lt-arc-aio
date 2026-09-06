@@ -27,6 +27,9 @@ import '../../work_items/presentation/work_items_tab.dart';
 import '../application/project_provider.dart';
 import '../data/project_repository.dart';
 import '../../../shared/widgets/app_toast.dart';
+import '../../settings/application/stage_template_provider.dart';
+import '../../settings/data/stage_template_repository.dart';
+import 'budget_vs_actual_table.dart';
 
 WebBadgeVariant _categoryVariant(ProjectCategory c) => switch (c) {
       ProjectCategory.construction => WebBadgeVariant.warning,
@@ -123,7 +126,10 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
     if (picked == null) return;
     setState(() {
       final prev = _stages[stageKey] ?? const ProjectStageProgress(progress: 0);
-      _stages = {..._stages, stageKey: ProjectStageProgress(progress: prev.progress, deadline: picked)};
+      _stages = {
+        ..._stages,
+        stageKey: ProjectStageProgress(progress: prev.progress, deadline: picked, name: prev.name),
+      };
     });
   }
 
@@ -335,9 +341,14 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
                             child: TabBarView(
                               controller: _tabs,
                               children: [
-                                BudgetTab(projectId: widget.projectId!),
-                                ProjectTasksTab(projectId: widget.projectId!),
+                                Column(
+                                  children: [
+                                    Expanded(flex: 3, child: BudgetTab(projectId: widget.projectId!)),
+                                    SizedBox(height: 280, child: ProjectFinancePanels(projectId: widget.projectId!)),
+                                  ],
+                                ),
                                 WorkItemsTab(projectId: widget.projectId!),
+                                ProjectTasksTab(projectId: widget.projectId!),
                                 IncomeTab(projectId: widget.projectId!),
                                 ExpenseTab(projectId: widget.projectId!),
                               ],
@@ -478,16 +489,30 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
           _KpiRow(projectId: widget.projectId!, project: project),
         ],
         const SizedBox(height: 16),
-        _StageProgressCard(
+        _StageProgressEditor(
           stages: _stages,
           onProgressChanged: (key, value) => setState(() {
             final prev = _stages[key] ?? const ProjectStageProgress(progress: 0);
-            _stages = {..._stages, key: ProjectStageProgress(progress: value.round(), deadline: prev.deadline)};
+            _stages = {
+              ..._stages,
+              key: ProjectStageProgress(progress: value.round(), deadline: prev.deadline, name: prev.name),
+            };
           }),
           onPickDeadline: _pickDeadline,
           onClearDeadline: (key) => setState(() {
             final prev = _stages[key] ?? const ProjectStageProgress(progress: 0);
-            _stages = {..._stages, key: ProjectStageProgress(progress: prev.progress)};
+            _stages = {
+              ..._stages,
+              key: ProjectStageProgress(progress: prev.progress, name: prev.name),
+            };
+          }),
+          onAddStage: (key, name) => setState(() {
+            if (_stages.containsKey(key)) return;
+            _stages = {..._stages, key: ProjectStageProgress(progress: 0, name: name)};
+          }),
+          onRemoveStage: (key) => setState(() {
+            final next = {..._stages}..remove(key);
+            _stages = next;
           }),
         ),
         if (widget.isCreate) ...[
@@ -572,8 +597,8 @@ class _ProjectTabs extends ConsumerWidget {
       labelColor: AppColors.webForeground,
       tabs: [
         const Tab(text: 'Dự toán'),
-        Tab(text: labeled('Công việc', taskCount)),
         Tab(text: labeled('Hạng mục công việc', workItemCount)),
+        Tab(text: labeled('Công việc', taskCount)),
         Tab(text: labeled('Thu', incomeCount)),
         Tab(text: cashCount > 0 ? labeled('Chi phí', expenseCount) : 'Chi phí'),
       ],
@@ -734,7 +759,7 @@ class _KpiRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pnlAsync = ref.watch(profitLossReportProvider);
+    final pnlAsync = ref.watch(profitLossReportProvider());
     final receivablesAsync = ref.watch(receivableListProvider);
     final pnl = (pnlAsync.asData?.value ?? const <ProjectPnl>[]).where((p) => p.projectId == projectId).firstOrNull;
     final receivable = (receivablesAsync.asData?.value ?? const [])
@@ -780,18 +805,22 @@ class _KpiRow extends ConsumerWidget {
   }
 }
 
-class _StageProgressCard extends StatelessWidget {
-  const _StageProgressCard({
+class _StageProgressEditor extends ConsumerWidget {
+  const _StageProgressEditor({
     required this.stages,
     required this.onProgressChanged,
     required this.onPickDeadline,
     required this.onClearDeadline,
+    required this.onAddStage,
+    required this.onRemoveStage,
   });
 
   final Map<String, ProjectStageProgress> stages;
   final void Function(String key, double value) onProgressChanged;
   final ValueChanged<String> onPickDeadline;
   final ValueChanged<String> onClearDeadline;
+  final void Function(String key, String name) onAddStage;
+  final ValueChanged<String> onRemoveStage;
 
   bool _isOverdue(ProjectStageProgress stage) {
     if (stage.deadline == null || stage.progress >= 100) return false;
@@ -801,9 +830,52 @@ class _StageProgressCard extends StatelessWidget {
     return d.isBefore(t);
   }
 
+  String _labelFor(String key, ProjectStageProgress stage, Map<String, String> templateLabels) {
+    return stage.name?.trim().isNotEmpty == true
+        ? stage.name!
+        : (templateLabels[key] ?? projectStageLabels[key] ?? key);
+  }
+
+  Future<void> _promptAddCustom(BuildContext context) async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Thêm giai đoạn'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Tên giai đoạn', isDense: true),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Huỷ')),
+          FilledButton(onPressed: () => Navigator.of(ctx).pop(controller.text.trim()), child: const Text('Thêm')),
+        ],
+      ),
+    );
+    if (name == null || name.isEmpty) return;
+    final key = name.toLowerCase().replaceAll(RegExp(r'\s+'), '_').replaceAll(RegExp(r'[^a-z0-9_]'), '');
+    onAddStage(key.isEmpty ? 'stage_${stages.length + 1}' : key, name);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final templatesAsync = ref.watch(stageTemplateListProvider(activeOnly: true));
     final dateFmt = DateFormat('dd/MM/yyyy');
+    final templates = templatesAsync.value ?? const <StageTemplate>[];
+    final templateLabels = <String, String>{for (final t in templates) t.key: t.name};
+    final templateKeys = [for (final t in templates) t.key];
+    final stageKeys = stages.keys.toList();
+    // Prefer template order, then remaining custom keys.
+    final orderedKeys = <String>[
+      for (final k in templateKeys)
+        if (stages.containsKey(k)) k,
+      for (final k in stageKeys)
+        if (!templateKeys.contains(k)) k,
+    ];
+    // If no stages yet and templates loaded, show empty with add options.
+    final keys = orderedKeys.isNotEmpty ? orderedKeys : stageKeys;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -815,86 +887,120 @@ class _StageProgressCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Tiến độ theo giai đoạn', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          Row(
+            children: [
+              const Expanded(
+                child: Text('Tiến độ theo giai đoạn', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _promptAddCustom(context),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Thêm giai đoạn'),
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
           Text(
             'Theo dõi chi tiết tiến độ thi công & thiết kế của dự án.',
             style: TextStyle(fontSize: 12, color: AppColors.webMutedFg),
           ),
-          const SizedBox(height: 16),
-          for (final key in projectStageKeys) ...[
-            Builder(
-              builder: (context) {
-                final stage = stages[key] ?? const ProjectStageProgress(progress: 0);
-                final overdue = _isOverdue(stage);
-                final barColor = stage.progress >= 100
-                    ? AppColors.webSuccess
-                    : (overdue ? AppColors.webDestructive : AppColors.gold);
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              projectStageLabels[key] ?? key,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                          Text(
-                            overdue ? '${stage.progress}% · trễ kế hoạch' : '${stage.progress}%',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: overdue ? AppColors.webDestructive : AppColors.webMutedFg,
-                              fontWeight: overdue ? FontWeight.w600 : null,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          OutlinedButton.icon(
-                            onPressed: () => onPickDeadline(key),
-                            icon: const Icon(Icons.event, size: 16),
-                            label: Text(
-                              stage.deadline != null ? dateFmt.format(stage.deadline!) : 'Deadline',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: overdue ? AppColors.webDestructive : null,
-                              ),
-                            ),
-                          ),
-                          if (stage.deadline != null)
-                            IconButton(
-                              tooltip: 'Xoá deadline',
-                              onPressed: () => onClearDeadline(key),
-                              icon: const Icon(Icons.clear, size: 16),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(3),
-                        child: LinearProgressIndicator(
-                          value: stage.progress / 100,
-                          minHeight: 8,
-                          backgroundColor: AppColors.webMutedBg,
-                          color: barColor,
-                        ),
-                      ),
-                      Slider(
-                        value: stage.progress.toDouble().clamp(0, 100),
-                        max: 100,
-                        divisions: 20,
-                        label: '${stage.progress}%',
-                        activeColor: barColor,
-                        onChanged: (v) => onProgressChanged(key, v),
-                      ),
-                    ],
-                  ),
-                );
-              },
+          if (templatesAsync.hasValue && templateKeys.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                for (final t in templates)
+                  if (!stages.containsKey(t.key))
+                    ActionChip(
+                      label: Text('＋ ${t.name}', style: const TextStyle(fontSize: 12)),
+                      onPressed: () => onAddStage(t.key, t.name),
+                    ),
+              ],
             ),
           ],
+          const SizedBox(height: 16),
+          if (keys.isEmpty)
+            Text('Chưa có giai đoạn. Thêm từ mẫu hoặc tạo mới.', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg))
+          else
+            for (final key in keys) ...[
+              Builder(
+                builder: (context) {
+                  final stage = stages[key] ?? const ProjectStageProgress(progress: 0);
+                  final overdue = _isOverdue(stage);
+                  final barColor = stage.progress >= 100
+                      ? AppColors.webSuccess
+                      : (overdue ? AppColors.webDestructive : AppColors.gold);
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _labelFor(key, stage, templateLabels),
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                            Text(
+                              overdue ? '${stage.progress}% · trễ kế hoạch' : '${stage.progress}%',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: overdue ? AppColors.webDestructive : AppColors.webMutedFg,
+                                fontWeight: overdue ? FontWeight.w600 : null,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton.icon(
+                              onPressed: () => onPickDeadline(key),
+                              icon: const Icon(Icons.event, size: 16),
+                              label: Text(
+                                stage.deadline != null ? dateFmt.format(stage.deadline!) : 'Deadline',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: overdue ? AppColors.webDestructive : null,
+                                ),
+                              ),
+                            ),
+                            if (stage.deadline != null)
+                              IconButton(
+                                tooltip: 'Xoá deadline',
+                                onPressed: () => onClearDeadline(key),
+                                icon: const Icon(Icons.clear, size: 16),
+                              ),
+                            IconButton(
+                              tooltip: 'Xoá giai đoạn',
+                              onPressed: () => onRemoveStage(key),
+                              icon: const Icon(Icons.delete_outline, size: 18),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(3),
+                          child: LinearProgressIndicator(
+                            value: stage.progress / 100,
+                            minHeight: 8,
+                            backgroundColor: AppColors.webMutedBg,
+                            color: barColor,
+                          ),
+                        ),
+                        Slider(
+                          value: stage.progress.toDouble().clamp(0, 100),
+                          max: 100,
+                          divisions: 20,
+                          label: '${stage.progress}%',
+                          activeColor: barColor,
+                          onChanged: (v) => onProgressChanged(key, v),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
         ],
       ),
     );

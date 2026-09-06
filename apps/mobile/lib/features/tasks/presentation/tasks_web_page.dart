@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/web_badge.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../departments/application/department_provider.dart';
 import '../../projects/application/project_provider.dart';
 import '../../projects/data/project_repository.dart';
@@ -11,6 +12,7 @@ import '../../users/application/user_provider.dart';
 import '../application/task_filter_provider.dart';
 import '../application/task_provider.dart';
 import '../data/task_repository.dart';
+import 'task_progress_dialog.dart';
 
 WebBadgeVariant _priorityVariant(TaskPriority p) => switch (p) {
       TaskPriority.high => WebBadgeVariant.destructive,
@@ -25,8 +27,7 @@ InputDecoration _webSelectDecoration() => InputDecoration(
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: AppColors.webBorder)),
     );
 
-/// Trang "Công việc" bản Web — bám `LT-ARC-Web-UI_1.html` (`data-if="isTasks"`):
-/// banner nhắc việc sắp đến hạn, 3 bộ lọc, Kanban 3 cột hiện tên dự án + bộ phận.
+/// Trang "Công việc" bản Web — Kanban 3 cột; nhân viên cập nhật tiến độ trên thẻ của mình.
 class TasksWebPage extends ConsumerWidget {
   const TasksWebPage({super.key});
 
@@ -37,6 +38,8 @@ class TasksWebPage extends ConsumerWidget {
     final projectsAsync = ref.watch(projectListProvider());
     final departmentsAsync = ref.watch(departmentListProvider);
     final usersAsync = ref.watch(userListProvider);
+    final me = ref.watch(authProvider).asData?.value;
+    final isEmployee = me?.role == 'EMPLOYEE';
 
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     final dueTomorrow = (tasksAsync.value ?? const <Task>[])
@@ -53,7 +56,12 @@ class TasksWebPage extends ConsumerWidget {
             children: [
               Text('Công việc', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 4),
-              Text('Bảng tiến độ theo trạng thái, gộp từ mọi dự án và bộ phận.', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg)),
+              Text(
+                isEmployee
+                    ? 'Cập nhật tiến độ công việc được giao. Cần làm → Đang làm → Hoàn thành.'
+                    : 'Bảng tiến độ theo trạng thái. Chỉ nhân viên được cập nhật tiến độ việc của mình.',
+                style: TextStyle(fontSize: 13, color: AppColors.webMutedFg),
+              ),
               const SizedBox(height: 16),
               if (dueTomorrow.isNotEmpty)
                 Container(
@@ -169,7 +177,15 @@ class TasksWebPage extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         for (final status in TaskStatus.values) ...[
-                          Expanded(child: _KanbanColumn(status: status, tasks: tasks.where((t) => t.status == status).toList(), projectsById: projectsById)),
+                          Expanded(
+                            child: _KanbanColumn(
+                              status: status,
+                              tasks: tasks.where((t) => t.status == status).toList(),
+                              projectsById: projectsById,
+                              canUpdate: isEmployee,
+                              currentUserId: me?.id,
+                            ),
+                          ),
                           if (status != TaskStatus.values.last) const SizedBox(width: 16),
                         ],
                       ],
@@ -190,11 +206,19 @@ class TasksWebPage extends ConsumerWidget {
 bool _isSameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
 
 class _KanbanColumn extends StatelessWidget {
-  const _KanbanColumn({required this.status, required this.tasks, required this.projectsById});
+  const _KanbanColumn({
+    required this.status,
+    required this.tasks,
+    required this.projectsById,
+    required this.canUpdate,
+    required this.currentUserId,
+  });
 
   final TaskStatus status;
   final List<Task> tasks;
   final Map<String, Project> projectsById;
+  final bool canUpdate;
+  final String? currentUserId;
 
   @override
   Widget build(BuildContext context) {
@@ -215,7 +239,16 @@ class _KanbanColumn extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Column(children: [for (final t in tasks) _TaskWebCard(task: t, project: projectsById[t.projectId])]),
+            child: Column(
+              children: [
+                for (final t in tasks)
+                  _TaskWebCard(
+                    task: t,
+                    project: projectsById[t.projectId],
+                    canUpdate: canUpdate && t.assigneeId == currentUserId,
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -224,50 +257,88 @@ class _KanbanColumn extends StatelessWidget {
 }
 
 class _TaskWebCard extends ConsumerWidget {
-  const _TaskWebCard({required this.task, required this.project});
+  const _TaskWebCard({required this.task, required this.project, required this.canUpdate});
 
   final Task task;
   final Project? project;
+  final bool canUpdate;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final usersAsync = ref.watch(userListProvider);
     final assigneeName = task.assigneeId != null ? (usersAsync.value ?? const []).where((u) => u.id == task.assigneeId).firstOrNull?.displayName : null;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: task.isOverdue ? AppColors.webDestructive.withValues(alpha: 0.4) : AppColors.webBorder),
+    return Material(
+      color: AppColors.webBackground,
+      borderRadius: BorderRadius.circular(4),
+      child: InkWell(
+        onTap: canUpdate ? () => showTaskProgressDialog(context, ref, task) : null,
         borderRadius: BorderRadius.circular(4),
-        color: AppColors.webBackground,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(color: task.isOverdue ? AppColors.webDestructive.withValues(alpha: 0.4) : AppColors.webBorder),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: Text(task.title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-              WebBadge(task.priority.label, variant: _priorityVariant(task.priority)),
-            ],
-          ),
-          if (project != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(project!.name, style: TextStyle(fontSize: 12, color: AppColors.webForeground))),
-          const SizedBox(height: 8),
-          ClipRRect(borderRadius: BorderRadius.circular(3), child: LinearProgressIndicator(value: task.progress / 100, minHeight: 6, backgroundColor: AppColors.webMutedBg, color: AppColors.gold)),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(assigneeName ?? '—', style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
-              Text(
-                task.dueDate != null ? DateFormat('dd/MM').format(task.dueDate!) + (task.isOverdue ? ' quá hạn' : '') : '—',
-                style: TextStyle(fontSize: 12, fontWeight: task.isOverdue ? FontWeight.w500 : FontWeight.normal, color: task.isOverdue ? AppColors.webDestructive : AppColors.webMutedFg),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: Text(task.title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+                  WebBadge(task.priority.label, variant: _priorityVariant(task.priority)),
+                ],
               ),
+              if (project != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(project!.name, style: TextStyle(fontSize: 12, color: AppColors.webForeground))),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: LinearProgressIndicator(
+                  value: task.progress / 100,
+                  minHeight: 6,
+                  backgroundColor: AppColors.webMutedBg,
+                  color: AppColors.gold,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(assigneeName ?? '—', style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+                  Text(
+                    task.dueDate != null ? DateFormat('dd/MM').format(task.dueDate!) + (task.isOverdue ? ' quá hạn' : '') : '—',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: task.isOverdue ? FontWeight.w500 : FontWeight.normal,
+                      color: task.isOverdue ? AppColors.webDestructive : AppColors.webMutedFg,
+                    ),
+                  ),
+                ],
+              ),
+              if (canUpdate) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      foregroundColor: AppColors.webForeground,
+                      padding: EdgeInsets.zero,
+                    ),
+                    onPressed: () => showTaskProgressDialog(context, ref, task),
+                    icon: const Icon(Icons.trending_up, size: 16),
+                    label: Text('Cập nhật ${_progressLabel(task)}', style: const TextStyle(fontSize: 12)),
+                  ),
+                ),
+              ],
             ],
           ),
-        ],
+        ),
       ),
     );
   }
+
+  String _progressLabel(Task task) => '${task.progress}%';
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../../departments/application/department_provider.dart';
+import '../../tasks/application/task_provider.dart';
 import '../application/work_item_provider.dart';
 import '../../../shared/widgets/app_toast.dart';
 
@@ -24,28 +25,20 @@ class WorkItemFormDialog extends ConsumerStatefulWidget {
 
 class _WorkItemFormDialogState extends ConsumerState<WorkItemFormDialog> {
   final _nameController = TextEditingController();
-  final _unitController = TextEditingController();
-  final _quantityController = TextEditingController();
-  final _priceController = TextEditingController();
   String? _departmentId;
+  bool _createTask = true;
   bool _saving = false;
 
   @override
   void dispose() {
     _nameController.dispose();
-    _unitController.dispose();
-    _quantityController.dispose();
-    _priceController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final name = _nameController.text.trim();
-    final unit = _unitController.text.trim();
-    final quantity = double.tryParse(_quantityController.text.trim().replaceAll(',', '.'));
-    final price = int.tryParse(_priceController.text.trim().replaceAll('.', '').replaceAll(',', ''));
-    if (name.isEmpty || unit.isEmpty || quantity == null || price == null || _departmentId == null) {
-      showAppToast(context, 'Điền đủ hạng mục, bộ phận, khối lượng và đơn giá');
+    if (name.isEmpty || _departmentId == null) {
+      showAppToast(context, 'Điền đủ hạng mục và bộ phận');
       return;
     }
     setState(() => _saving = true);
@@ -55,11 +48,12 @@ class _WorkItemFormDialogState extends ConsumerState<WorkItemFormDialog> {
             projectId: widget.projectId,
             departmentId: _departmentId!,
             name: name,
-            unit: unit,
-            quantity: quantity,
-            unitPrice: price,
+            createTask: _createTask,
           );
-      close.success('Đã thêm hạng mục');
+      if (_createTask) {
+        ref.invalidate(taskListProvider);
+      }
+      close.success(_createTask ? 'Đã thêm hạng mục và công việc liên kết' : 'Đã thêm hạng mục');
     } on ApiException catch (e) {
       if (mounted) showAppToast(context, e.message, error: true);
     } finally {
@@ -69,7 +63,6 @@ class _WorkItemFormDialogState extends ConsumerState<WorkItemFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    // Giữ Actions sống trong lúc dialog mở (bổ sung keepAlive).
     ref.watch(workItemActionsProvider);
     final departmentsAsync = ref.watch(departmentListProvider);
 
@@ -93,27 +86,14 @@ class _WorkItemFormDialogState extends ConsumerState<WorkItemFormDialog> {
                 loading: () => const LinearProgressIndicator(),
                 error: (e, _) => Text('Lỗi tải bộ phận: $e'),
               ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(controller: _unitController, decoration: const InputDecoration(labelText: 'Đơn vị *', isDense: true)),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _quantityController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(labelText: 'Khối lượng *', isDense: true),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _priceController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Đơn giá (₫) *', isDense: true),
+              const SizedBox(height: 8),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                value: _createTask,
+                onChanged: (v) => setState(() => _createTask = v ?? true),
+                title: const Text('Tạo luôn 1 công việc ở tab Công việc', style: TextStyle(fontSize: 13)),
+                controlAffinity: ListTileControlAffinity.leading,
               ),
             ],
           ),

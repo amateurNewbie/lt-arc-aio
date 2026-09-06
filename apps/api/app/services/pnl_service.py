@@ -1,8 +1,10 @@
+from datetime import date
 from uuid import UUID
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.models.enums import ProjectCategory
 from app.models.fund import CashLedgerEntry
 from app.models.overhead import OverheadAllocation, OverheadCost
 from app.models.payment import Payment
@@ -14,15 +16,48 @@ def _margin(revenue: int, profit: int) -> float:
     return round(profit / revenue * 100, 2) if revenue else 0.0
 
 
-async def project_pnl(session: AsyncSession, project_id: UUID) -> dict:
-    """FR-11.2/11.3 — Lãi/Lỗ = Doanh thu đã thu − (Chi phí trực tiếp + Chi phí chung phân bổ)."""
+def _in_range(d: date, date_from: date | None, date_to: date | None) -> bool:
+    if date_from is not None and d < date_from:
+        return False
+    if date_to is not None and d > date_to:
+        return False
+    return True
+
+
+async def project_pnl(
+    session: AsyncSession,
+    project_id: UUID,
+    *,
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> dict:
+    """Lãi/Lỗ = Doanh thu đã thu − (Chi phí trực tiếp + Chi phí chung phân bổ)."""
     project = await session.get(Project, project_id)
 
-    revenue = sum((await session.exec(select(Payment.amount).where(Payment.project_id == project_id))).all())
-    direct_cost = sum((await session.exec(select(ProjectCost.amount).where(ProjectCost.project_id == project_id))).all())
-    overhead = sum(
-        (await session.exec(select(OverheadAllocation.allocated_amount).where(OverheadAllocation.project_id == project_id))).all()
-    )
+    payments = list((await session.exec(select(Payment).where(Payment.project_id == project_id))).all())
+    costs = list((await session.exec(select(ProjectCost).where(ProjectCost.project_id == project_id))).all())
+    if date_from is not None or date_to is not None:
+        payments = [p for p in payments if _in_range(p.date, date_from, date_to)]
+        costs = [c for c in costs if _in_range(c.date, date_from, date_to)]
+
+    revenue = sum(p.amount for p in payments)
+    direct_cost = sum(c.amount for c in costs)
+
+    overhead_q = select(OverheadAllocation).where(OverheadAllocation.project_id == project_id)
+    allocations = list((await session.exec(overhead_q)).all())
+    if date_from is not None or date_to is not None:
+        filtered = []
+        for a in allocations:
+            try:
+                y, m = a.month.split("-")
+                month_day = date(int(y), int(m), 1)
+            except ValueError:
+                continue
+            if _in_range(month_day, date_from, date_to):
+                filtered.append(a)
+        allocations = filtered
+    overhead = sum(a.allocated_amount for a in allocations)
+
     total_cost = direct_cost + overhead
     profit = revenue - total_cost
 
@@ -39,10 +74,21 @@ async def project_pnl(session: AsyncSession, project_id: UUID) -> dict:
     }
 
 
-async def all_projects_pnl(session: AsyncSession) -> list[dict]:
-    """FR-11.3 — báo cáo P&L theo từng dự án, toàn studio."""
-    result = await session.exec(select(Project.id))
-    return [await project_pnl(session, project_id) for project_id in result.all()]
+async def all_projects_pnl(
+    session: AsyncSession,
+    *,
+    category: ProjectCategory | None = None,
+    project_id: UUID | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> list[dict]:
+    query = select(Project)
+    if category is not None:
+        query = query.where(Project.category == category)
+    if project_id is not None:
+        query = query.where(Project.id == project_id)
+    result = await session.exec(query)
+    return [await project_pnl(session, p.id, date_from=date_from, date_to=date_to) for p in result.all()]
 
 
 def _same_month(d, year: int, month: int) -> bool:
@@ -50,7 +96,6 @@ def _same_month(d, year: int, month: int) -> bool:
 
 
 async def monthly_pnl(session: AsyncSession, year: int, month: int) -> dict:
-    """FR-11.5 — P&L toàn studio theo từng tháng."""
     payments = (await session.exec(select(Payment))).all()
     costs = (await session.exec(select(ProjectCost))).all()
     overheads = (await session.exec(select(OverheadCost))).all()
@@ -74,7 +119,6 @@ async def monthly_pnl(session: AsyncSession, year: int, month: int) -> dict:
 
 
 async def cashflow_report(session: AsyncSession, year: int, month: int) -> dict:
-    """FR-12.4 — số dư đầu kỳ, tổng thu, tổng chi, số dư cuối kỳ."""
     entries = (await session.exec(select(CashLedgerEntry))).all()
     month_key = f"{year:04d}-{month:02d}"
 

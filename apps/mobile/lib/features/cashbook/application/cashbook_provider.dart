@@ -73,4 +73,29 @@ class CashbookActions extends _$CashbookActions {
     ref.invalidate(contractListProvider(projectId));
     ref.invalidate(fundListProvider);
   }
+
+  Future<Payment> createPayment({
+    required String projectId,
+    required int amount,
+    required String fundAccountId,
+    required DateTime date,
+    String? note,
+    String? contractMilestoneId,
+  }) async {
+    final payment = await ref.read(cashbookRepositoryProvider).createPayment(
+          projectId: projectId,
+          amount: amount,
+          fundAccountId: fundAccountId,
+          date: date,
+          note: note,
+          contractMilestoneId: contractMilestoneId,
+        );
+    if (!ref.mounted) return payment;
+    ref.invalidate(projectPaymentListProvider(projectId));
+    if (contractMilestoneId != null) {
+      ref.invalidate(contractListProvider(projectId));
+    }
+    ref.invalidate(fundListProvider);
+    return payment;
+  }
 }

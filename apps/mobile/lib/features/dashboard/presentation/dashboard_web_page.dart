@@ -30,7 +30,7 @@ class DashboardWebPage extends ConsumerWidget {
     final projectsAsync = ref.watch(projectListProvider());
     final tasksAsync = ref.watch(taskListProvider());
     final activitiesAsync = ref.watch(recentActivitiesProvider);
-    final pnlAsync = ref.watch(profitLossReportProvider);
+    final pnlAsync = ref.watch(profitLossReportProvider());
     final currency = NumberFormat.decimalPattern('vi');
 
     final tasks = tasksAsync.value ?? const <Task>[];

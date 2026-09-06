@@ -18,7 +18,7 @@ class _MilestoneChoice {
   String get label => '${milestone.name} (còn ${NumberFormat.decimalPattern('vi').format(milestone.remaining)} ₫)';
 }
 
-/// FR-6 / FR-9.3 — tab Thu: danh sách + popup ghi nhận thu theo đợt hợp đồng.
+/// FR-6 / FR-9.3 — tab Thu: thu tự do (note) hoặc gắn đợt hợp đồng (tuỳ chọn).
 class IncomeTab extends ConsumerWidget {
   const IncomeTab({super.key, required this.projectId});
 
@@ -54,7 +54,7 @@ class IncomeTab extends ConsumerWidget {
           child: paymentsAsync.when(
             data: (payments) {
               if (payments.isEmpty) {
-                return const Center(child: Text('Chưa có khoản thu nào. Cần có hợp đồng + đợt thanh toán trước.'));
+                return const Center(child: Text('Chưa có khoản thu nào.'));
               }
               final total = payments.fold<int>(0, (s, p) => s + p.amount);
               return Column(
@@ -72,7 +72,7 @@ class IncomeTab extends ConsumerWidget {
                         dataRowMaxHeight: 48,
                         columns: const [
                           DataColumn(label: Text('Ngày')),
-                          DataColumn(label: Text('Đợt thanh toán')),
+                          DataColumn(label: Text('Diễn giải')),
                           DataColumn(label: Text('Số tiền'), numeric: true),
                         ],
                         rows: [
@@ -80,7 +80,13 @@ class IncomeTab extends ConsumerWidget {
                             DataRow(
                               cells: [
                                 DataCell(Text(DateFormat('dd/MM/yyyy').format(p.date))),
-                                DataCell(Text(milestoneNames[p.contractMilestoneId] ?? p.contractMilestoneId)),
+                                DataCell(Text(
+                                  p.note?.trim().isNotEmpty == true
+                                      ? p.note!
+                                      : (p.contractMilestoneId != null
+                                          ? (milestoneNames[p.contractMilestoneId] ?? 'Đợt thanh toán')
+                                          : '—'),
+                                )),
                                 DataCell(Text('+${currency.format(p.amount)} ₫', style: const TextStyle(color: AppColors.webSuccess, fontWeight: FontWeight.w600))),
                               ],
                             ),
@@ -110,6 +116,7 @@ class _IncomeDialog extends ConsumerStatefulWidget {
 
 class _IncomeDialogState extends ConsumerState<_IncomeDialog> {
   final _amountController = TextEditingController();
+  final _noteController = TextEditingController();
   String? _choiceKey;
   String? _fundId;
   DateTime _date = DateTime.now();
@@ -118,6 +125,7 @@ class _IncomeDialogState extends ConsumerState<_IncomeDialog> {
   @override
   void dispose() {
     _amountController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -134,17 +142,23 @@ class _IncomeDialogState extends ConsumerState<_IncomeDialog> {
   }
 
   Future<void> _submit(List<_MilestoneChoice> choices) async {
-    final choice = choices.where((c) => c.key == _choiceKey).firstOrNull;
     final amount = int.tryParse(_amountController.text.trim().replaceAll('.', '')) ?? 0;
-    if (choice == null) {
-      showAppToast(context, 'Chọn đợt thanh toán hợp đồng');
-      return;
-    }
+    final note = _noteController.text.trim();
+    final choice = choices.where((c) => c.key == _choiceKey).firstOrNull;
+
     if (amount <= 0) {
       showAppToast(context, 'Nhập số tiền hợp lệ');
       return;
     }
-    if (amount > choice.milestone.remaining) {
+    if (_fundId == null) {
+      showAppToast(context, 'Chọn quỹ / tài khoản');
+      return;
+    }
+    if (choice == null && note.isEmpty) {
+      showAppToast(context, 'Nhập diễn giải khi không gắn đợt thanh toán', error: true);
+      return;
+    }
+    if (choice != null && amount > choice.milestone.remaining) {
       showAppToast(
         context,
         'Số tiền vượt phần còn lại (${NumberFormat.decimalPattern('vi').format(choice.milestone.remaining)} ₫)',
@@ -152,21 +166,17 @@ class _IncomeDialogState extends ConsumerState<_IncomeDialog> {
       );
       return;
     }
-    if (_fundId == null) {
-      showAppToast(context, 'Chọn quỹ / tài khoản');
-      return;
-    }
 
     setState(() => _saving = true);
     final close = PendingDialogClose.of(context);
     try {
-      await ref.read(cashbookActionsProvider.notifier).collectPayment(
+      await ref.read(cashbookActionsProvider.notifier).createPayment(
             projectId: widget.projectId,
-            contractId: choice.contractId,
-            milestoneId: choice.milestone.id,
             amount: amount,
             fundAccountId: _fundId!,
             date: _date,
+            note: note.isEmpty ? null : note,
+            contractMilestoneId: choice?.milestone.id,
           );
       close.success('Đã ghi nhận khoản thu');
     } on ApiException catch (e) {
@@ -190,20 +200,18 @@ class _IncomeDialogState extends ConsumerState<_IncomeDialog> {
         child: contractsAsync.when(
           data: (contracts) {
             final choices = _openMilestones(contracts);
-            if (choices.isEmpty) {
-              return const Text(
-                'Chưa có đợt thanh toán còn phải thu.\nTạo hợp đồng và các đợt ở tab Hợp đồng (hoặc trang Hợp đồng) trước.',
-              );
-            }
             return SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  DropdownButtonFormField<String>(
+                  DropdownButtonFormField<String?>(
                     initialValue: _choiceKey,
                     isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Đợt thanh toán hợp đồng *', isDense: true),
-                    items: [for (final c in choices) DropdownMenuItem(value: c.key, child: Text(c.label, overflow: TextOverflow.ellipsis))],
+                    decoration: const InputDecoration(labelText: 'Đợt thanh toán (tuỳ chọn)', isDense: true),
+                    items: [
+                      const DropdownMenuItem<String?>(value: null, child: Text('— Không gắn đợt —')),
+                      for (final c in choices) DropdownMenuItem(value: c.key, child: Text(c.label, overflow: TextOverflow.ellipsis)),
+                    ],
                     onChanged: (v) {
                       setState(() {
                         _choiceKey = v;
@@ -213,6 +221,14 @@ class _IncomeDialogState extends ConsumerState<_IncomeDialog> {
                         }
                       });
                     },
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _noteController,
+                    decoration: InputDecoration(
+                      labelText: _choiceKey == null ? 'Diễn giải *' : 'Diễn giải',
+                      isDense: true,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   TextField(

@@ -17,7 +17,7 @@ extension TaskStatusWire on TaskStatus {
   String get label => switch (this) {
         TaskStatus.todo => 'Cần làm',
         TaskStatus.doing => 'Đang làm',
-        TaskStatus.done => 'Đã hoàn thành',
+        TaskStatus.done => 'Hoàn thành',
       };
 }
 
@@ -54,6 +54,7 @@ class Task {
     required this.progress,
     required this.isOverdue,
     this.description,
+    this.workItemId,
     this.parentTaskId,
     this.dueDate,
     this.assigneeId,
@@ -64,6 +65,7 @@ class Task {
   final String? description;
   final String projectId;
   final String departmentId;
+  final String? workItemId;
   final String? parentTaskId;
   final DateTime? dueDate;
   final TaskPriority priority;
@@ -78,6 +80,7 @@ class Task {
         description: json['description'] as String?,
         projectId: json['project_id'] as String,
         departmentId: json['department_id'] as String,
+        workItemId: json['work_item_id'] as String?,
         parentTaskId: json['parent_task_id'] as String?,
         dueDate: json['due_date'] != null ? DateTime.parse(json['due_date'] as String) : null,
         priority: taskPriorityFromJson(json['priority'] as String),
@@ -113,6 +116,7 @@ class TaskRepository {
     required String title,
     required String projectId,
     required String departmentId,
+    required String workItemId,
     String? parentTaskId,
     String? assigneeId,
     DateTime? dueDate,
@@ -125,6 +129,7 @@ class TaskRepository {
           'title': title,
           'project_id': projectId,
           'department_id': departmentId,
+          'work_item_id': workItemId,
           'parent_task_id': ?parentTaskId,
           'assignee_id': ?assigneeId,
           if (dueDate != null) 'due_date': dueDate.toIso8601String().split('T').first,

@@ -81,18 +81,17 @@ class WorkItemRepository {
     required String projectId,
     required String departmentId,
     required String name,
-    required String unit,
-    required double quantity,
-    required int unitPrice,
+    bool createTask = true,
   }) async {
     try {
       final response = await _apiClient.dio.post('/api/projects/$projectId/work-items', data: {
         'project_id': projectId,
         'department_id': departmentId,
         'name': name,
-        'unit': unit,
-        'quantity': quantity,
-        'unit_price': unitPrice,
+        'unit': '-',
+        'quantity': 1,
+        'unit_price': 0,
+        'create_task': createTask,
       });
       return WorkItem.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {

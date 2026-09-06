@@ -9,7 +9,14 @@ from app.models.enums import TaskStatus
 from app.models.task import Task
 from app.models.user import User
 from app.schemas.task import TaskCreate, TaskProgressUpdate, TaskRead
-from app.services.task_service import IncompleteSubtasksError, create_task, is_overdue, list_tasks, update_progress
+from app.services.task_service import (
+    IncompleteSubtasksError,
+    MissingWorkItemError,
+    create_task,
+    is_overdue,
+    list_tasks,
+    update_progress,
+)
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -21,6 +28,7 @@ def _to_read(task: Task) -> TaskRead:
         description=task.description,
         project_id=task.project_id,
         department_id=task.department_id,
+        work_item_id=task.work_item_id,
         parent_task_id=task.parent_task_id,
         due_date=task.due_date,
         priority=task.priority,
@@ -62,18 +70,25 @@ async def create_task_endpoint(
     if user.role == Role.DEPARTMENT_HEAD and payload.department_id != user.department_id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ được giao việc trong bộ phận của mình")
 
-    task = await create_task(
-        session,
-        title=payload.title,
-        project_id=payload.project_id,
-        department_id=payload.department_id,
-        actor=user,
-        description=payload.description,
-        parent_task_id=payload.parent_task_id,
-        due_date=payload.due_date,
-        priority=payload.priority,
-        assignee_id=payload.assignee_id,
-    )
+    try:
+        task = await create_task(
+            session,
+            title=payload.title,
+            project_id=payload.project_id,
+            department_id=payload.department_id,
+            actor=user,
+            work_item_id=payload.work_item_id,
+            description=payload.description,
+            parent_task_id=payload.parent_task_id,
+            due_date=payload.due_date,
+            priority=payload.priority,
+            assignee_id=payload.assignee_id,
+        )
+    except MissingWorkItemError as exc:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Công việc phải gắn với hạng mục công việc hợp lệ của dự án",
+        ) from exc
     return _to_read(task)
 
 
@@ -84,16 +99,15 @@ async def update_task_progress_endpoint(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> TaskRead:
-    """FR-5.3; RBAC §2.6 — Nhân viên chỉ cập nhật việc của bản thân, Trưởng bộ
-    phận chỉ việc trong bộ phận."""
+    """Chỉ Nhân viên cập nhật tiến độ công việc được assign cho mình."""
     task = await session.get(Task, task_id)
     if task is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found")
 
-    if user.role == Role.EMPLOYEE and task.assignee_id != user.id:
+    if user.role != Role.EMPLOYEE:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ nhân viên được cập nhật tiến độ công việc")
+    if task.assignee_id != user.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ được cập nhật công việc của chính mình")
-    if user.role == Role.DEPARTMENT_HEAD and task.department_id != user.department_id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ được cập nhật công việc trong bộ phận của mình")
 
     try:
         task = await update_progress(session, task, progress=payload.progress, actor=user)

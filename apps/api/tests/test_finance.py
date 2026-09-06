@@ -4,7 +4,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.permissions import Role
 from app.models.enums import (
-    AllocationBasis,
     BudgetEstimateStatus,
     CostCategoryScope,
     FundType,
@@ -15,7 +14,7 @@ from app.services.budget_service import InvalidBudgetTransitionError, approve, c
 from app.services.contract_service import InvalidMilestoneRatioError, create_contract
 from app.services.cost_category_service import create_category
 from app.services.fund_service import create_fund
-from app.services.overhead_service import AllocationAlreadyAppliedError, apply_allocation, declare_cost
+from app.services.overhead_service import AllocationAlreadyAppliedError, apply_manual_allocation, declare_cost
 from app.services.payment_service import MilestoneOverpaidError, collect_milestone
 from app.services.pnl_service import project_pnl
 from app.services.project_cost_service import DuplicateCostWarning, InvalidCostCategoryError, create_cost
@@ -165,7 +164,33 @@ async def test_overhead_allocation_idempotent(session: AsyncSession) -> None:
     fund = await create_fund(session, name="Quỹ Test OH", type_=FundType.CASH, balance=0)
     company_category = await create_category(session, name="Thuê VP Test", scope=CostCategoryScope.COMPANY, description=None)
 
-    await declare_cost(session, cost_category_id=company_category.id, amount=100_000_000, on=date(2026, 6, 1), month="2026-06")
+    await declare_cost(
+        session,
+        cost_category_id=company_category.id,
+        amount=100_000_000,
+        on=date(2026, 6, 1),
+        month="2026-06",
+        fund_account_id=fund.id,
+        actor=director,
+    )
+    await session.refresh(fund)
+    assert fund.balance == -100_000_000
+
+    from app.models.fund import CashLedgerEntry
+    from sqlmodel import select
+
+    ledger = list(
+        (
+            await session.exec(
+                select(CashLedgerEntry).where(
+                    CashLedgerEntry.source_type == "overhead_cost",
+                    CashLedgerEntry.fund_account_id == fund.id,
+                )
+            )
+        ).all()
+    )
+    assert len(ledger) == 1
+    assert ledger[0].outflow == 100_000_000
 
     contract = await create_contract(
         session, project_id=project.id, type_=ProjectCategory.CONSTRUCTION, value=500_000_000, milestones=[{"name": "Đợt 1", "ratio": 100}], actor=director
@@ -175,12 +200,22 @@ async def test_overhead_allocation_idempotent(session: AsyncSession) -> None:
     milestone = (await get_milestones(session, contract.id))[0]
     await collect_milestone(session, milestone, project_id=project.id, amount=500_000_000, fund_account_id=fund.id, actor=director, on=date(2026, 6, 5))
 
-    allocations = await apply_allocation(session, "2026-06", AllocationBasis.REVENUE, director)
+    allocations = await apply_manual_allocation(
+        session,
+        month="2026-06",
+        items=[{"project_id": project.id, "allocated_amount": 100_000_000}],
+        actor=director,
+    )
     assert len(allocations) == 1
-    assert allocations[0].allocated_amount == 100_000_000  # dự án duy nhất có doanh thu -> nhận 100%
+    assert allocations[0].allocated_amount == 100_000_000
 
     try:
-        await apply_allocation(session, "2026-06", AllocationBasis.REVENUE, director)
+        await apply_manual_allocation(
+            session,
+            month="2026-06",
+            items=[{"project_id": project.id, "allocated_amount": 100_000_000}],
+            actor=director,
+        )
         assert False, "expected AllocationAlreadyAppliedError"
     except AllocationAlreadyAppliedError:
         pass

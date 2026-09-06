@@ -7,7 +7,7 @@ from sqlmodel import Field, SQLModel
 from app.core.clock import utcnow
 from app.models.enums import ProjectCategory, ProjectStatus
 
-# FR-3.4 — khóa giai đoạn tiến độ (khớp LT-ARC-Web-UI + BRD).
+# FR-3.4 — khóa mặc định (seed); runtime lấy từ projectstagetemplate + JSON trên DA.
 PROJECT_STAGE_KEYS = (
     "design",
     "permit",
@@ -16,26 +16,48 @@ PROJECT_STAGE_KEYS = (
     "handover",
 )
 
+PROJECT_STAGE_LABELS = {
+    "design": "Thiết kế",
+    "permit": "Xin phép xây dựng",
+    "rough_construction": "Thi công phần thô",
+    "interior_finish": "Hoàn thiện nội thất",
+    "handover": "Nghiệm thu & bàn giao",
+}
 
-def default_stage_progress() -> dict:
-    """Mỗi giai đoạn: {progress: 0..100, deadline: ISO date | null}."""
-    return {key: {"progress": 0, "deadline": None} for key in PROJECT_STAGE_KEYS}
+
+def default_stage_progress(keys: list[str] | None = None) -> dict:
+    """Mỗi giai đoạn: {progress: 0..100, deadline: ISO date | null, name?: str}."""
+    use_keys = keys if keys is not None else list(PROJECT_STAGE_KEYS)
+    return {key: {"progress": 0, "deadline": None, "name": PROJECT_STAGE_LABELS.get(key, key)} for key in use_keys}
 
 
-def normalize_stage_progress(raw: dict | None) -> dict:
-    """Chuẩn hoá JSON cũ `{"design": 100}` → `{"design": {"progress": 100, "deadline": null}}`."""
-    base = default_stage_progress()
+def normalize_stage_progress(raw: dict | None, template_keys: list[str] | None = None) -> dict:
+    """Chuẩn hoá JSON giai đoạn — giữ mọi key có trong raw hoặc template."""
+    if not raw and template_keys:
+        return default_stage_progress(template_keys)
     if not raw:
-        return base
-    for key in PROJECT_STAGE_KEYS:
+        return default_stage_progress()
+
+    keys = list(raw.keys())
+    if template_keys:
+        for k in template_keys:
+            if k not in keys:
+                keys.append(k)
+
+    result: dict = {}
+    for key in keys:
         value = raw.get(key)
+        label = PROJECT_STAGE_LABELS.get(key, key)
         if isinstance(value, dict):
             progress = int(value.get("progress") or 0)
             deadline = value.get("deadline")
-            base[key] = {"progress": max(0, min(100, progress)), "deadline": deadline}
+            name = value.get("name") or label
+            result[key] = {"progress": max(0, min(100, progress)), "deadline": deadline, "name": name}
         elif isinstance(value, (int, float)):
-            base[key] = {"progress": max(0, min(100, int(value))), "deadline": None}
-    return base
+            result[key] = {"progress": max(0, min(100, int(value))), "deadline": None, "name": label}
+        else:
+            result[key] = {"progress": 0, "deadline": None, "name": label}
+    return result
 
 
 class Project(SQLModel, table=True):

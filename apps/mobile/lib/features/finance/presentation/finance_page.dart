@@ -4,8 +4,7 @@ import '../../overhead/presentation/overhead_allocation_tab.dart';
 import '../../reports/presentation/cashflow_tab.dart';
 import '../../reports/presentation/profit_loss_tab.dart';
 
-/// FR-8/11/12 — Tài chính: Tổng quan & P&L | Chi phí chung | Quỹ & Dòng tiền
-/// (đúng plan §6.1).
+/// FR-8/11/12 — Tài chính: Tổng quan & P&L | Chi phí chung & phân bổ | Quỹ & Dòng tiền
 class FinancePage extends StatelessWidget {
   const FinancePage({super.key});
 
@@ -17,7 +16,12 @@ class FinancePage extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Tài chính'),
           bottom: const TabBar(
-            tabs: [Tab(text: 'Tổng quan & P&L'), Tab(text: 'Chi phí chung'), Tab(text: 'Quỹ & Dòng tiền')],
+            isScrollable: true,
+            tabs: [
+              Tab(text: 'Tổng quan & P&L'),
+              Tab(text: 'Chi phí chung & phân bổ'),
+              Tab(text: 'Quỹ & Dòng tiền'),
+            ],
           ),
         ),
         body: const TabBarView(

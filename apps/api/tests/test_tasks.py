@@ -9,7 +9,8 @@ from app.models.enums import ProjectCategory, TaskStatus
 from app.services.auth_service import create_user
 from app.services.department_service import create_department
 from app.services.project_service import create_project
-from app.services.task_service import IncompleteSubtasksError, create_task, update_progress
+from app.services.task_service import IncompleteSubtasksError, create_task, list_tasks, update_progress
+from app.services.work_item_service import create_work_item
 
 
 def _auth_headers(user) -> dict:
@@ -29,14 +30,39 @@ async def _make_project(session: AsyncSession, director) -> tuple:
     return dept, project
 
 
+async def _make_work_item(session: AsyncSession, *, project_id, department_id, actor, name="Hạng mục mặc định"):
+    return await create_work_item(
+        session,
+        project_id=project_id,
+        department_id=department_id,
+        name=name,
+        actor=actor,
+        create_linked_task=False,
+    )
+
+
 async def test_subtask_blocks_parent_auto_complete(session: AsyncSession) -> None:
-    """FR-5.2 — công việc cha không tự chuyển 'Đã hoàn thành' khi còn đầu việc con chưa xong."""
+    """FR-5.2 — công việc cha không tự chuyển hoàn thành khi còn đầu việc con chưa xong."""
     director = await create_user(session, email="dtask1@ltarc.vn", password="x", role=Role.DIRECTOR)
     dept, project = await _make_project(session, director)
+    work_item = await _make_work_item(session, project_id=project.id, department_id=dept.id, actor=director)
 
-    parent = await create_task(session, title="Thi công phần thô", project_id=project.id, department_id=dept.id, actor=director)
+    parent = await create_task(
+        session,
+        title="Thi công phần thô",
+        project_id=project.id,
+        department_id=dept.id,
+        work_item_id=work_item.id,
+        actor=director,
+    )
     child = await create_task(
-        session, title="Đổ móng", project_id=project.id, department_id=dept.id, parent_task_id=parent.id, actor=director
+        session,
+        title="Đổ móng",
+        project_id=project.id,
+        department_id=dept.id,
+        work_item_id=work_item.id,
+        parent_task_id=parent.id,
+        actor=director,
     )
 
     try:
@@ -55,6 +81,7 @@ async def test_subtask_blocks_parent_auto_complete(session: AsyncSession) -> Non
 async def test_employee_can_only_update_own_task(client: AsyncClient, session: AsyncSession) -> None:
     director = await create_user(session, email="dtask2@ltarc.vn", password="x", role=Role.DIRECTOR)
     dept, project = await _make_project(session, director)
+    work_item = await _make_work_item(session, project_id=project.id, department_id=dept.id, actor=director)
 
     employee_a = await create_user(session, email="empa@ltarc.vn", password="x", role=Role.EMPLOYEE, department_id=dept.id)
     employee_b = await create_user(session, email="empb@ltarc.vn", password="x", role=Role.EMPLOYEE, department_id=dept.id)
@@ -64,6 +91,7 @@ async def test_employee_can_only_update_own_task(client: AsyncClient, session: A
         title="Lắp đặt điện tầng 2",
         project_id=project.id,
         department_id=dept.id,
+        work_item_id=work_item.id,
         actor=director,
         assignee_id=employee_a.id,
     )
@@ -74,10 +102,39 @@ async def test_employee_can_only_update_own_task(client: AsyncClient, session: A
     assert resp.status_code == 403
 
     resp = await client.patch(
+        f"/api/tasks/{task.id}", headers=_auth_headers(director), json={"progress": 50}
+    )
+    assert resp.status_code == 403
+
+    resp = await client.patch(
         f"/api/tasks/{task.id}", headers=_auth_headers(employee_a), json={"progress": 50}
     )
     assert resp.status_code == 200
-    assert resp.json()["progress"] == 50
+    body = resp.json()
+    assert body["progress"] == 50
+    assert body["status"] == "DOING"
+
+
+async def test_employee_progress_100_moves_to_done(client: AsyncClient, session: AsyncSession) -> None:
+    director = await create_user(session, email="dtask2b@ltarc.vn", password="x", role=Role.DIRECTOR)
+    dept, project = await _make_project(session, director)
+    work_item = await _make_work_item(session, project_id=project.id, department_id=dept.id, actor=director)
+    employee = await create_user(session, email="emp2b@ltarc.vn", password="x", role=Role.EMPLOYEE, department_id=dept.id)
+    task = await create_task(
+        session,
+        title="Hoàn thiện",
+        project_id=project.id,
+        department_id=dept.id,
+        work_item_id=work_item.id,
+        actor=director,
+        assignee_id=employee.id,
+    )
+    resp = await client.patch(f"/api/tasks/{task.id}", headers=_auth_headers(employee), json={"progress": 100})
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "DONE"
+
+    await session.refresh(work_item)
+    assert work_item.progress == 100
 
 
 async def test_department_head_cannot_create_task_outside_own_department(
@@ -86,6 +143,7 @@ async def test_department_head_cannot_create_task_outside_own_department(
     director = await create_user(session, email="dtask3@ltarc.vn", password="x", role=Role.DIRECTOR)
     own_dept, project = await _make_project(session, director)
     other_dept = await create_department(session, name="Thiết kế", head_user_id=None)
+    work_item = await _make_work_item(session, project_id=project.id, department_id=own_dept.id, actor=director)
 
     head = await create_user(
         session, email="head3@ltarc.vn", password="x", role=Role.DEPARTMENT_HEAD, department_id=own_dept.id
@@ -94,28 +152,81 @@ async def test_department_head_cannot_create_task_outside_own_department(
     resp = await client.post(
         "/api/tasks",
         headers=_auth_headers(head),
-        json={"title": "Việc ngoài bộ phận", "project_id": str(project.id), "department_id": str(other_dept.id)},
+        json={
+            "title": "Việc ngoài bộ phận",
+            "project_id": str(project.id),
+            "department_id": str(other_dept.id),
+            "work_item_id": str(work_item.id),
+        },
     )
     assert resp.status_code == 403
 
     resp = await client.post(
         "/api/tasks",
         headers=_auth_headers(head),
-        json={"title": "Việc trong bộ phận", "project_id": str(project.id), "department_id": str(own_dept.id)},
+        json={
+            "title": "Việc trong bộ phận",
+            "project_id": str(project.id),
+            "department_id": str(own_dept.id),
+            "work_item_id": str(work_item.id),
+        },
     )
     assert resp.status_code == 201
+
+
+async def test_department_head_lists_tasks_on_assigned_projects(session: AsyncSession) -> None:
+    director = await create_user(session, email="dtask5@ltarc.vn", password="x", role=Role.DIRECTOR)
+    dept, assigned = await _make_project(session, director)
+    hidden = await create_project(
+        session,
+        name="DA ẩn",
+        client="X",
+        category=ProjectCategory.DESIGN,
+        manager_id=director.id,
+        actor=director,
+    )
+    head = await create_user(
+        session, email="head5@ltarc.vn", password="x", role=Role.DEPARTMENT_HEAD, department_id=dept.id
+    )
+    assigned.manager_id = head.id
+    session.add(assigned)
+    await session.commit()
+
+    wi_a = await _make_work_item(session, project_id=assigned.id, department_id=dept.id, actor=director, name="A")
+    wi_h = await _make_work_item(session, project_id=hidden.id, department_id=dept.id, actor=director, name="H")
+    await create_task(
+        session,
+        title="Việc DA mình",
+        project_id=assigned.id,
+        department_id=dept.id,
+        work_item_id=wi_a.id,
+        actor=director,
+    )
+    await create_task(
+        session,
+        title="Việc DA khác",
+        project_id=hidden.id,
+        department_id=dept.id,
+        work_item_id=wi_h.id,
+        actor=director,
+    )
+
+    visible = await list_tasks(session, head)
+    assert {t.title for t in visible} == {"Việc DA mình"}
 
 
 async def test_overdue_flag_set_when_due_date_passed(client: AsyncClient, session: AsyncSession) -> None:
     """FR-5.6 — cảnh báo công việc quá hạn."""
     director = await create_user(session, email="dtask4@ltarc.vn", password="x", role=Role.DIRECTOR)
     dept, project = await _make_project(session, director)
+    work_item = await _make_work_item(session, project_id=project.id, department_id=dept.id, actor=director)
 
     await create_task(
         session,
         title="Việc quá hạn",
         project_id=project.id,
         department_id=dept.id,
+        work_item_id=work_item.id,
         actor=director,
         due_date=date(2020, 1, 1),
     )

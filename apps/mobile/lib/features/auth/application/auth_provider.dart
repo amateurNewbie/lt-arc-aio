@@ -1,20 +1,25 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/network/session_events.dart';
 import '../data/auth_repository.dart';
 
 part 'auth_provider.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 ApiClient apiClient(Ref ref) => ApiClient.create();
 
 @riverpod
 AuthRepository authRepository(Ref ref) => AuthRepository(ref.watch(apiClientProvider));
 
-@riverpod
+@Riverpod(keepAlive: true)
 class Auth extends _$Auth {
   @override
   Future<CurrentUser?> build() {
+    final sub = SessionEvents.instance.unauthorized.listen((_) {
+      if (ref.mounted) state = const AsyncData(null);
+    });
+    ref.onDispose(sub.cancel);
     return ref.watch(authRepositoryProvider).tryRestoreSession();
   }
 

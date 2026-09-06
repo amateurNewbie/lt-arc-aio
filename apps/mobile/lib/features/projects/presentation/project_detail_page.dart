@@ -42,8 +42,8 @@ class ProjectDetailPage extends ConsumerWidget {
               Tab(text: 'Tổng quan'),
               Tab(text: 'Dự toán'),
               Tab(text: 'Hợp đồng'),
-              Tab(text: 'Công việc'),
               Tab(text: 'Hạng mục công việc'),
+              Tab(text: 'Công việc'),
               Tab(text: 'Thu & Chi'),
               Tab(text: 'Tệp'),
             ],
@@ -55,8 +55,8 @@ class ProjectDetailPage extends ConsumerWidget {
               _OverviewTab(project: project),
               BudgetTab(projectId: project.id),
               ContractsTab(projectId: project.id),
-              ProjectTasksTab(projectId: project.id),
               WorkItemsTab(projectId: project.id),
+              ProjectTasksTab(projectId: project.id),
               CashbookTab(projectId: project.id),
               FilesTab(projectId: project.id),
             ],
@@ -76,7 +76,7 @@ class _OverviewTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pnlAsync = ref.watch(profitLossReportProvider);
+    final pnlAsync = ref.watch(profitLossReportProvider());
     final receivablesAsync = ref.watch(receivableListProvider);
 
     final pnl = (pnlAsync.value ?? const <ProjectPnl>[]).where((p) => p.projectId == project.id).firstOrNull;

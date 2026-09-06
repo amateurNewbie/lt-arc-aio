@@ -5,13 +5,16 @@ import 'package:intl/intl.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/web_badge.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../departments/application/department_provider.dart';
 import '../../users/application/user_provider.dart';
+import '../../work_items/application/work_item_provider.dart';
 import '../application/task_provider.dart';
 import '../data/task_repository.dart';
 import '../../../shared/widgets/app_toast.dart';
+import 'task_progress_dialog.dart';
 
-/// Tab Công việc trong chi tiết dự án — bảng + popup tạo (bám HTML).
+/// Tab Công việc trong chi tiết dự án — bảng + popup tạo.
 class ProjectTasksTab extends ConsumerWidget {
   const ProjectTasksTab({super.key, required this.projectId});
 
@@ -22,6 +25,9 @@ class ProjectTasksTab extends ConsumerWidget {
     final tasksAsync = ref.watch(taskListProvider(projectId: projectId));
     final departmentsAsync = ref.watch(departmentListProvider);
     final usersAsync = ref.watch(userListProvider);
+    final workItemsAsync = ref.watch(workItemListProvider(projectId));
+    final me = ref.watch(authProvider).asData?.value;
+    final canUpdateProgress = me?.role == 'EMPLOYEE';
     final dateFmt = DateFormat('dd/MM/yyyy');
 
     return Column(
@@ -45,8 +51,8 @@ class ProjectTasksTab extends ConsumerWidget {
               if (tasks.isEmpty) return const Center(child: Text('Chưa có công việc nào'));
               final deptNames = {for (final d in departmentsAsync.asData?.value ?? const []) d.id: d.name};
               final userNames = {for (final u in usersAsync.asData?.value ?? const []) u.id: u.displayName};
+              final workItemNames = {for (final w in workItemsAsync.asData?.value ?? const []) w.id: w.name};
 
-              // Cha trước, con ngay dưới cha (indent).
               final roots = tasks.where((t) => t.parentTaskId == null).toList();
               final childrenOf = <String, List<Task>>{};
               for (final t in tasks.where((t) => t.parentTaskId != null)) {
@@ -59,7 +65,6 @@ class ProjectTasksTab extends ConsumerWidget {
                   ordered.add((task: child, child: true));
                 }
               }
-              // Orphan subtasks (parent not in list)
               final shown = ordered.map((e) => e.task.id).toSet();
               for (final t in tasks) {
                 if (!shown.contains(t.id)) ordered.add((task: t, child: t.parentTaskId != null));
@@ -72,6 +77,7 @@ class ProjectTasksTab extends ConsumerWidget {
                   dataRowMaxHeight: 56,
                   columns: const [
                     DataColumn(label: Text('Công việc')),
+                    DataColumn(label: Text('Hạng mục')),
                     DataColumn(label: Text('Bộ phận')),
                     DataColumn(label: Text('Người phụ trách')),
                     DataColumn(label: Text('Ưu tiên')),
@@ -85,7 +91,9 @@ class ProjectTasksTab extends ConsumerWidget {
                         cells: [
                           DataCell(
                             InkWell(
-                              onTap: () => _editProgress(context, ref, row.task),
+                              onTap: canUpdateProgress && row.task.assigneeId == me?.id
+                                  ? () => showTaskProgressDialog(context, ref, row.task)
+                                  : null,
                               child: Padding(
                                 padding: EdgeInsets.only(left: row.child ? 20 : 0),
                                 child: Text(
@@ -99,6 +107,12 @@ class ProjectTasksTab extends ConsumerWidget {
                               ),
                             ),
                           ),
+                          DataCell(
+                            Text(
+                              row.task.workItemId == null ? '—' : (workItemNames[row.task.workItemId] ?? '—'),
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
                           DataCell(Text(deptNames[row.task.departmentId] ?? '—', style: const TextStyle(fontSize: 13))),
                           DataCell(Text(row.task.assigneeId == null ? '—' : (userNames[row.task.assigneeId] ?? '—'), style: const TextStyle(fontSize: 13))),
                           DataCell(
@@ -108,7 +122,7 @@ class ProjectTasksTab extends ConsumerWidget {
                           ),
                           DataCell(
                             row.task.status == TaskStatus.done
-                                ? const WebBadge('Đã hoàn thành', variant: WebBadgeVariant.secondary)
+                                ? const WebBadge('Hoàn thành', variant: WebBadgeVariant.secondary)
                                 : Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -154,40 +168,6 @@ class ProjectTasksTab extends ConsumerWidget {
       ],
     );
   }
-
-  Future<void> _editProgress(BuildContext context, WidgetRef ref, Task task) async {
-    var progress = task.progress;
-    await showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          title: Text(task.title),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Slider(value: progress.toDouble(), max: 100, divisions: 20, label: '$progress%', onChanged: (v) => setState(() => progress = v.round())),
-              Text('$progress%'),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Huỷ')),
-            FilledButton(
-              onPressed: () async {
-                final close = PendingDialogClose.of(ctx);
-                try {
-                  await ref.read(taskActionsProvider.notifier).updateProgress(task.id, progress);
-                  close.success('Đã cập nhật tiến độ');
-                } on ApiException catch (e) {
-                  if (ctx.mounted) showAppToast(ctx, e.message, error: true);
-                }
-              },
-              child: const Text('Cập nhật'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 Future<void> showProjectTaskDialog(BuildContext context, String projectId, {String? parentTaskId}) {
@@ -206,6 +186,7 @@ class _ProjectTaskDialog extends ConsumerStatefulWidget {
 class _ProjectTaskDialogState extends ConsumerState<_ProjectTaskDialog> {
   final _titleController = TextEditingController();
   String? _departmentId;
+  String? _workItemId;
   String? _assigneeId;
   String? _parentTaskId;
   TaskPriority _priority = TaskPriority.medium;
@@ -226,8 +207,8 @@ class _ProjectTaskDialogState extends ConsumerState<_ProjectTaskDialog> {
 
   Future<void> _submit() async {
     final title = _titleController.text.trim();
-    if (title.isEmpty || _departmentId == null) {
-      showAppToast(context, 'Nhập tên công việc và bộ phận');
+    if (title.isEmpty || _departmentId == null || _workItemId == null) {
+      showAppToast(context, 'Nhập tên công việc, hạng mục và bộ phận');
       return;
     }
     setState(() => _saving = true);
@@ -237,6 +218,7 @@ class _ProjectTaskDialogState extends ConsumerState<_ProjectTaskDialog> {
             title: title,
             projectId: widget.projectId,
             departmentId: _departmentId!,
+            workItemId: _workItemId!,
             assigneeId: _assigneeId,
             parentTaskId: _parentTaskId,
             dueDate: _dueDate,
@@ -254,6 +236,7 @@ class _ProjectTaskDialogState extends ConsumerState<_ProjectTaskDialog> {
   Widget build(BuildContext context) {
     final departmentsAsync = ref.watch(departmentListProvider);
     final usersAsync = ref.watch(userListProvider);
+    final workItemsAsync = ref.watch(workItemListProvider(widget.projectId));
     final tasksAsync = ref.watch(taskListProvider(projectId: widget.projectId));
     final parents = (tasksAsync.asData?.value ?? const <Task>[]).where((t) => t.parentTaskId == null).toList();
 
@@ -266,6 +249,27 @@ class _ProjectTaskDialogState extends ConsumerState<_ProjectTaskDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(controller: _titleController, decoration: const InputDecoration(labelText: 'Tên công việc *', isDense: true)),
+              const SizedBox(height: 10),
+              workItemsAsync.when(
+                data: (items) => DropdownButtonFormField<String>(
+                  initialValue: _workItemId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Hạng mục công việc *', isDense: true),
+                  items: [
+                    for (final w in items)
+                      DropdownMenuItem(value: w.id, child: Text(w.name, overflow: TextOverflow.ellipsis)),
+                  ],
+                  onChanged: (v) {
+                    setState(() {
+                      _workItemId = v;
+                      final match = items.where((w) => w.id == v).firstOrNull;
+                      if (match != null) _departmentId = match.departmentId;
+                    });
+                  },
+                ),
+                loading: () => const LinearProgressIndicator(),
+                error: (e, _) => Text('$e'),
+              ),
               const SizedBox(height: 10),
               departmentsAsync.when(
                 data: (depts) => DropdownButtonFormField<String>(
@@ -316,7 +320,13 @@ class _ProjectTaskDialogState extends ConsumerState<_ProjectTaskDialog> {
                   const DropdownMenuItem(value: null, child: Text('— Không —')),
                   for (final t in parents) DropdownMenuItem(value: t.id, child: Text(t.title, overflow: TextOverflow.ellipsis)),
                 ],
-                onChanged: (v) => setState(() => _parentTaskId = v),
+                onChanged: (v) {
+                  setState(() {
+                    _parentTaskId = v;
+                    final parent = parents.where((t) => t.id == v).firstOrNull;
+                    if (parent?.workItemId != null) _workItemId = parent!.workItemId;
+                  });
+                },
               ),
               const SizedBox(height: 10),
               ListTile(

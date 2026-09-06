@@ -43,6 +43,8 @@ async def create_work_item_endpoint(
         unit=payload.unit,
         quantity=payload.quantity,
         unit_price=payload.unit_price,
+        actor=user,
+        create_linked_task=payload.create_task,
     )
 
 

@@ -8,7 +8,8 @@ import '../application/cost_category_provider.dart';
 import '../data/cost_category_repository.dart';
 import '../../../shared/widgets/app_toast.dart';
 
-InputDecoration _fieldDecoration({String? hint}) => InputDecoration(
+InputDecoration _fieldDecoration({String? label, String? hint}) => InputDecoration(
+      labelText: label,
       hintText: hint,
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
@@ -16,8 +17,7 @@ InputDecoration _fieldDecoration({String? hint}) => InputDecoration(
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: AppColors.webBorder)),
     );
 
-/// FR-7 — Danh mục hạng mục chi phí, dùng chung cho Dự toán/Chi phí dự án/Chi
-/// phí chung công ty. Bám `LT-ARC-Web-UI_1.html` mục "Danh mục hạng mục chi phí".
+/// FR-7 — Danh mục hạng mục chi phí (Dự toán / Chi phí dự án / Chi phí chung).
 class CostCategoriesTab extends ConsumerStatefulWidget {
   const CostCategoriesTab({super.key});
 
@@ -30,6 +30,13 @@ class _CostCategoriesTabState extends ConsumerState<CostCategoriesTab> {
   final _descController = TextEditingController();
   CostCategoryScope _scope = CostCategoryScope.project;
   bool _saving = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
 
   Future<void> _submit() async {
     final name = _nameController.text.trim();
@@ -67,22 +74,23 @@ class _CostCategoriesTabState extends ConsumerState<CostCategoriesTab> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: TextField(controller: _nameController, decoration: _fieldDecoration(hint: 'VD: Vận chuyển'))),
+              Expanded(child: TextField(controller: _nameController, decoration: _fieldDecoration(label: 'Tên danh mục', hint: 'VD: Vận chuyển'))),
               const SizedBox(width: 12),
               SizedBox(
-                width: 180,
+                width: 200,
                 child: DropdownButtonFormField<CostCategoryScope>(
                   initialValue: _scope,
-                  decoration: _fieldDecoration(),
+                  isExpanded: true,
+                  decoration: _fieldDecoration(label: 'Phạm vi'),
                   items: const [
-                    DropdownMenuItem(value: CostCategoryScope.project, child: Text('Chi phí dự án', style: TextStyle(fontSize: 13))),
-                    DropdownMenuItem(value: CostCategoryScope.company, child: Text('Chi phí chung công ty', style: TextStyle(fontSize: 13))),
+                    DropdownMenuItem(value: CostCategoryScope.project, child: Text('Chi phí dự án', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: CostCategoryScope.company, child: Text('Chi phí chung công ty', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
                   ],
                   onChanged: (v) => setState(() => _scope = v!),
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(child: TextField(controller: _descController, decoration: _fieldDecoration(hint: 'VD: Chi phí vận chuyển vật tư, thiết bị'))),
+              Expanded(child: TextField(controller: _descController, decoration: _fieldDecoration(label: 'Mô tả', hint: 'VD: Chi phí vận chuyển vật tư, thiết bị'))),
             ],
           ),
           const SizedBox(height: 12),
@@ -91,7 +99,9 @@ class _CostCategoriesTabState extends ConsumerState<CostCategoriesTab> {
             child: FilledButton(
               onPressed: _saving ? null : _submit,
               style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
-              child: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Thêm danh mục'),
+              child: _saving
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Thêm danh mục'),
             ),
           ),
           const SizedBox(height: 20),
@@ -100,36 +110,72 @@ class _CostCategoriesTabState extends ConsumerState<CostCategoriesTab> {
           categoriesAsync.when(
             data: (categories) {
               if (categories.isEmpty) return const Text('Chưa có danh mục nào');
-              return SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  headingRowHeight: 32,
-                  dataRowMinHeight: 40,
-                  dataRowMaxHeight: 48,
-                  columns: const [
-                    DataColumn(label: Text('TÊN DANH MỤC', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
-                    DataColumn(label: Text('PHẠM VI', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
-                    DataColumn(label: Text('MÔ TẢ', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
-                    DataColumn(label: Text('TRẠNG THÁI', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
-                    DataColumn(label: Text('THAO TÁC', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
-                  ],
-                  rows: [
-                    for (final c in categories)
-                      DataRow(cells: [
-                        DataCell(Text(c.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-                        DataCell(WebBadge(c.scope == CostCategoryScope.project ? 'Dự án' : 'Công ty', variant: WebBadgeVariant.outline)),
-                        DataCell(Text(c.description ?? '—', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg))),
-                        DataCell(WebBadge(c.active ? 'Đang dùng' : 'Ngừng dùng', variant: c.active ? WebBadgeVariant.secondary : WebBadgeVariant.muted)),
-                        DataCell(TextButton(
-                          onPressed: () => ref.read(costCategoryActionsProvider.notifier).setActive(c.id, !c.active),
-                          child: Text(c.active ? 'Ngừng dùng' : 'Dùng lại', style: const TextStyle(fontSize: 12)),
-                        )),
-                      ]),
-                  ],
+              return Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.webCardBg,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.webBorder),
+                ),
+                padding: const EdgeInsets.all(12),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    headingRowHeight: 36,
+                    dataRowMinHeight: 44,
+                    dataRowMaxHeight: 56,
+                    columns: const [
+                      DataColumn(label: Text('TÊN DANH MỤC', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
+                      DataColumn(label: Text('PHẠM VI', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
+                      DataColumn(label: Text('MÔ TẢ', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
+                      DataColumn(label: Text('TRẠNG THÁI', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
+                      DataColumn(label: Text('THAO TÁC', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
+                    ],
+                    rows: [
+                      for (final c in categories)
+                        DataRow(
+                          cells: [
+                            DataCell(Text(c.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+                            DataCell(WebBadge(c.scope == CostCategoryScope.project ? 'Dự án' : 'Công ty', variant: WebBadgeVariant.outline)),
+                            DataCell(
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 280),
+                                child: Text(
+                                  c.description ?? '—',
+                                  style: TextStyle(fontSize: 13, color: AppColors.webMutedFg),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              WebBadge(
+                                c.active ? 'Đang dùng' : 'Ngừng dùng',
+                                variant: c.active ? WebBadgeVariant.secondary : WebBadgeVariant.muted,
+                              ),
+                            ),
+                            DataCell(
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  visualDensity: VisualDensity.compact,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  minimumSize: Size.zero,
+                                ),
+                                onPressed: () => ref.read(costCategoryActionsProvider.notifier).setActive(c.id, !c.active),
+                                child: Text(c.active ? 'Ngừng dùng' : 'Dùng lại', style: const TextStyle(fontSize: 12)),
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
                 ),
               );
             },
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: SizedBox(height: 36, width: 36, child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
             error: (e, _) => Text('Lỗi tải dữ liệu: $e'),
           ),
         ],

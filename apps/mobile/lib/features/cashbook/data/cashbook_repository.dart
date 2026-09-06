@@ -40,26 +40,29 @@ class Payment {
   const Payment({
     required this.id,
     required this.projectId,
-    required this.contractMilestoneId,
     required this.amount,
     required this.date,
     required this.fundAccountId,
+    this.contractMilestoneId,
+    this.note,
   });
 
   final String id;
   final String projectId;
-  final String contractMilestoneId;
+  final String? contractMilestoneId;
   final int amount;
   final DateTime date;
   final String fundAccountId;
+  final String? note;
 
   factory Payment.fromJson(Map<String, dynamic> json) => Payment(
         id: json['id'] as String,
         projectId: json['project_id'] as String,
-        contractMilestoneId: json['contract_milestone_id'] as String,
+        contractMilestoneId: json['contract_milestone_id'] as String?,
         amount: json['amount'] as int,
         date: DateTime.parse(json['date'] as String),
         fundAccountId: json['fund_account_id'] as String,
+        note: json['note'] as String?,
       );
 }
 
@@ -127,6 +130,32 @@ class CashbookRepository {
         );
       }
       return ProjectCost.fromJson(data);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<Payment> createPayment({
+    required String projectId,
+    required int amount,
+    required String fundAccountId,
+    required DateTime date,
+    String? note,
+    String? contractMilestoneId,
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '/api/payments',
+        data: {
+          'project_id': projectId,
+          'amount': amount,
+          'fund_account_id': fundAccountId,
+          'date': date.toIso8601String().split('T').first,
+          if (note != null && note.isNotEmpty) 'note': note,
+          if (contractMilestoneId != null) 'contract_milestone_id': contractMilestoneId,
+        },
+      );
+      return Payment.fromJson(Map<String, dynamic>.from(response.data as Map));
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

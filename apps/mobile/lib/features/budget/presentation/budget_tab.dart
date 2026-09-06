@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../shared/widgets/web_badge.dart';
 import '../../cost_categories/application/cost_category_provider.dart';
 import '../../cost_categories/data/cost_category_repository.dart';
 import '../../projects/application/project_provider.dart';
@@ -12,25 +11,11 @@ import '../application/budget_provider.dart';
 import '../data/budget_repository.dart';
 import '../../../shared/widgets/app_toast.dart';
 
-WebBadgeVariant _budgetBadge(BudgetStatus s) => switch (s) {
-      BudgetStatus.draft => WebBadgeVariant.outline,
-      BudgetStatus.pending => WebBadgeVariant.warning,
-      BudgetStatus.approved => WebBadgeVariant.secondary,
-    };
-
-/// FR-4 — tab Dự toán bám HTML: bảng dòng + popup thêm dòng + gửi/duyệt.
+/// Tab Dự toán — chỉ lập dòng dự toán (không gửi/duyệt).
 class BudgetTab extends ConsumerWidget {
   const BudgetTab({super.key, required this.projectId});
 
   final String projectId;
-
-  Future<void> _handle(BuildContext context, Future<void> Function() action) async {
-    try {
-      await action();
-    } on ApiException catch (e) {
-      if (context.mounted) showAppToast(context, e.message, error: true);
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -56,20 +41,10 @@ class BudgetTab extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          const Text('Dự toán dự án', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                          if (display != null) ...[
-                            const SizedBox(width: 8),
-                            WebBadge(display.status.label, variant: _budgetBadge(display.status)),
-                            const SizedBox(width: 8),
-                            Text('v${display.version}', style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
-                          ],
-                        ],
-                      ),
+                      const Text('Dự toán dự án', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 4),
                       Text(
-                        'Mọi dự toán phải được Giám đốc duyệt trước khi có hiệu lực.',
+                        'Lập các dòng dự toán chi phí theo hạng mục.',
                         style: TextStyle(fontSize: 12, color: AppColors.webMutedFg),
                       ),
                     ],
@@ -85,7 +60,7 @@ class BudgetTab extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             if (display == null)
-              const Expanded(child: Center(child: Text('Chưa có dự toán — bấm Thêm dòng dự toán để lập nháp')))
+              const Expanded(child: Center(child: Text('Chưa có dự toán — bấm Thêm dòng dự toán để lập')))
             else ...[
               Expanded(
                 child: SingleChildScrollView(
@@ -96,9 +71,6 @@ class BudgetTab extends ConsumerWidget {
                     columns: const [
                       DataColumn(label: Text('Hạng mục chi phí')),
                       DataColumn(label: Text('Diễn giải')),
-                      DataColumn(label: Text('Đơn vị')),
-                      DataColumn(label: Text('Khối lượng'), numeric: true),
-                      DataColumn(label: Text('Đơn giá'), numeric: true),
                       DataColumn(label: Text('Thành tiền'), numeric: true),
                     ],
                     rows: [
@@ -107,18 +79,12 @@ class BudgetTab extends ConsumerWidget {
                           cells: [
                             DataCell(Text(catNames[line.costCategoryId] ?? '—', style: const TextStyle(fontWeight: FontWeight.w500))),
                             DataCell(Text(line.description ?? '—', overflow: TextOverflow.ellipsis)),
-                            DataCell(Text(line.unit)),
-                            DataCell(Text(line.quantity % 1 == 0 ? line.quantity.toInt().toString() : line.quantity.toString())),
-                            DataCell(Text('${currency.format(line.unitPrice)} ₫')),
                             DataCell(Text('${currency.format(line.amount)} ₫', style: const TextStyle(fontWeight: FontWeight.w500))),
                           ],
                         ),
                       DataRow(
                         cells: [
                           const DataCell(Text('Tổng dự toán chi phí', style: TextStyle(fontWeight: FontWeight.w700))),
-                          const DataCell(Text('')),
-                          const DataCell(Text('')),
-                          const DataCell(Text('')),
                           const DataCell(Text('')),
                           DataCell(Text('${currency.format(display.total)} ₫', style: const TextStyle(fontWeight: FontWeight.w700))),
                         ],
@@ -152,34 +118,6 @@ class BudgetTab extends ConsumerWidget {
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (display.status == BudgetStatus.draft)
-                    FilledButton(
-                      onPressed: () => _handle(context, () async {
-                        await ref.read(budgetActionsProvider.notifier).submit(projectId, display.id);
-                        if (context.mounted) {
-                          showAppToast(context, 'Đã gửi duyệt dự toán');
-                        }
-                      }),
-                      child: const Text('Gửi duyệt'),
-                    ),
-                  if (display.status == BudgetStatus.pending) ...[
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      onPressed: () => _handle(context, () async {
-                        await ref.read(budgetActionsProvider.notifier).approve(projectId, display.id);
-                        if (context.mounted) {
-                          showAppToast(context, 'Đã duyệt dự toán');
-                        }
-                      }),
-                      child: const Text('Duyệt dự toán'),
-                    ),
-                  ],
-                ],
               ),
             ],
           ],
@@ -215,27 +153,22 @@ class _BudgetLineDialog extends ConsumerStatefulWidget {
 }
 
 class _BudgetLineDialogState extends ConsumerState<_BudgetLineDialog> {
-  final _unitController = TextEditingController(text: 'm²');
-  final _qtyController = TextEditingController();
-  final _priceController = TextEditingController();
+  final _amountController = TextEditingController();
   final _descController = TextEditingController();
   String? _categoryId;
   bool _saving = false;
 
   @override
   void dispose() {
-    _unitController.dispose();
-    _qtyController.dispose();
-    _priceController.dispose();
+    _amountController.dispose();
     _descController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    final qty = double.tryParse(_qtyController.text.trim().replaceAll(',', '.'));
-    final price = int.tryParse(_priceController.text.trim().replaceAll('.', ''));
-    if (_categoryId == null || qty == null || qty <= 0 || price == null || price < 0) {
-      showAppToast(context, 'Nhập đủ hạng mục, khối lượng và đơn giá');
+    final amount = int.tryParse(_amountController.text.trim().replaceAll('.', '').replaceAll(',', ''));
+    if (_categoryId == null || amount == null || amount < 0) {
+      showAppToast(context, 'Nhập đủ hạng mục và thành tiền');
       return;
     }
     setState(() => _saving = true);
@@ -245,9 +178,9 @@ class _BudgetLineDialogState extends ConsumerState<_BudgetLineDialog> {
             widget.projectId,
             BudgetLineInput(
               costCategoryId: _categoryId!,
-              unit: _unitController.text.trim().isEmpty ? 'm²' : _unitController.text.trim(),
-              quantity: qty,
-              unitPrice: price,
+              unit: '-',
+              quantity: 1,
+              unitPrice: amount,
               description: _descController.text.trim().isEmpty ? null : _descController.text.trim(),
             ),
           );
@@ -262,12 +195,6 @@ class _BudgetLineDialogState extends ConsumerState<_BudgetLineDialog> {
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(costCategoryListProvider(scope: CostCategoryScope.project));
-    final amountPreview = () {
-      final q = double.tryParse(_qtyController.text.trim().replaceAll(',', '.'));
-      final p = int.tryParse(_priceController.text.trim().replaceAll('.', ''));
-      if (q == null || p == null) return null;
-      return (q * p).round();
-    }();
 
     return AlertDialog(
       title: const Text('Lập dòng dự toán mới'),
@@ -288,28 +215,10 @@ class _BudgetLineDialogState extends ConsumerState<_BudgetLineDialog> {
                 error: (e, _) => Text('$e'),
               ),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(controller: _unitController, decoration: const InputDecoration(labelText: 'Đơn vị tính', isDense: true)),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextField(
-                      controller: _qtyController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Khối lượng *', isDense: true),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
               TextField(
-                controller: _priceController,
+                controller: _amountController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Đơn giá dự toán (₫) *', isDense: true),
-                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(labelText: 'Thành tiền (₫) *', isDense: true),
               ),
               const SizedBox(height: 10),
               TextField(
@@ -317,16 +226,6 @@ class _BudgetLineDialogState extends ConsumerState<_BudgetLineDialog> {
                 maxLines: 2,
                 decoration: const InputDecoration(labelText: 'Diễn giải', hintText: 'VD: Sơn hoàn thiện ngoại thất', isDense: true),
               ),
-              if (amountPreview != null) ...[
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Thành tiền: ${NumberFormat.decimalPattern('vi').format(amountPreview)} ₫',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -337,7 +236,7 @@ class _BudgetLineDialogState extends ConsumerState<_BudgetLineDialog> {
           onPressed: _saving ? null : _submit,
           child: _saving
               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Lưu nháp'),
+              : const Text('Lưu'),
         ),
       ],
     );

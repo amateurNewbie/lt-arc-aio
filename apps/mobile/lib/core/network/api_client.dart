@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
 import '../storage/secure_storage.dart';
+import 'session_events.dart';
 
 /// Base URL theo `flutter.mdc`: Android emulator dùng 10.0.2.2, Web/desktop
 /// dùng 127.0.0.1. Đổi sang domain thật qua biến môi trường khi build release
@@ -44,8 +45,7 @@ class ApiClient {
         onError: (error, handler) async {
           if (error.response?.statusCode == 401 && !client.isPreviewActive) {
             await SecureStorage.clear();
-            // Provider layer (authProvider) quan sát lỗi 401 qua repository và
-            // tự chuyển state về đăng xuất — xem features/auth/application.
+            SessionEvents.instance.notifyUnauthorized();
           }
           handler.next(error);
         },

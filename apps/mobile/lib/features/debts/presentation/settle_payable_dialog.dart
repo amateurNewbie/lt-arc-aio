@@ -5,6 +5,7 @@ import '../../../core/api/api_exception.dart';
 import '../../funds/application/fund_provider.dart';
 import '../application/debt_provider.dart';
 import '../data/debt_repository.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 Future<void> showSettlePayableDialog(BuildContext context, Payable payable) {
   return showDialog(context: context, builder: (_) => _SettleDialog(payable: payable));
@@ -27,11 +28,12 @@ class _SettleDialogState extends ConsumerState<_SettleDialog> {
     final amount = int.tryParse(_amountController.text) ?? 0;
     if (amount <= 0 || _fundId == null) return;
     setState(() => _saving = true);
+    final close = PendingDialogClose.of(context);
     try {
       await ref.read(debtActionsProvider.notifier).settlePayable(payableId: widget.payable.id, amount: amount, fundAccountId: _fundId!);
-      if (mounted) Navigator.of(context).pop();
+      close.success('Đã tất toán công nợ');
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

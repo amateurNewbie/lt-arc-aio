@@ -11,13 +11,16 @@ WorkdaysRepository workdaysRepository(Ref ref) => WorkdaysRepository(ref.watch(a
 @riverpod
 Future<List<MonthlyWorkDays>> workdaysMonth(Ref ref, String month) => ref.watch(workdaysRepositoryProvider).listMonth(month);
 
-@riverpod
+/// keepAlive: Actions chỉ được `ref.read` từ dialog — autoDispose sẽ dispose
+/// giữa `await` API rồi nổ khi `invalidate` (Ref after disposed).
+@Riverpod(keepAlive: true)
 class WorkdaysActions extends _$WorkdaysActions {
   @override
   void build() {}
 
   Future<void> save(String month, Map<String, double> entriesByEmployeeId) async {
     await ref.read(workdaysRepositoryProvider).upsert(month, entriesByEmployeeId);
+    if (!ref.mounted) return;
     ref.invalidate(workdaysMonthProvider);
   }
 }

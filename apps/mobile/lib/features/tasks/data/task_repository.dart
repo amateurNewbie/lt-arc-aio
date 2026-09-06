@@ -115,6 +115,8 @@ class TaskRepository {
     required String departmentId,
     String? parentTaskId,
     String? assigneeId,
+    DateTime? dueDate,
+    TaskPriority priority = TaskPriority.medium,
   }) async {
     try {
       final response = await _apiClient.dio.post(
@@ -123,8 +125,10 @@ class TaskRepository {
           'title': title,
           'project_id': projectId,
           'department_id': departmentId,
-          'parent_task_id': parentTaskId,
-          'assignee_id': assigneeId,
+          'parent_task_id': ?parentTaskId,
+          'assignee_id': ?assigneeId,
+          if (dueDate != null) 'due_date': dueDate.toIso8601String().split('T').first,
+          'priority': priority.wire,
         },
       );
       return Task.fromJson(response.data as Map<String, dynamic>);

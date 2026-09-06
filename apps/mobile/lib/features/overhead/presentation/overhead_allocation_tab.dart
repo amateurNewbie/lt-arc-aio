@@ -10,6 +10,7 @@ import '../../cost_categories/data/cost_category_repository.dart';
 import '../application/overhead_provider.dart';
 import '../data/overhead_repository.dart';
 import 'overhead_cost_form_sheet.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 /// FR-8 — Chi phí chung công ty & phân bổ, bám `LT-ARC-Web-UI_1.html` mục
 /// "Chi phí chung & Phân bổ": danh sách chi phí chung đã khai báo + phân bổ.
@@ -35,7 +36,7 @@ class _OverheadAllocationTabState extends ConsumerState<OverheadAllocationTab> {
       final result = await ref.read(overheadActionsProvider.notifier).preview(month: _month, basis: _basis);
       setState(() => _preview = result);
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -46,11 +47,11 @@ class _OverheadAllocationTabState extends ConsumerState<OverheadAllocationTab> {
     try {
       await ref.read(overheadActionsProvider.notifier).apply(month: _month, basis: _basis);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã áp dụng phân bổ vào P&L')));
+        showAppToast(context, 'Đã áp dụng phân bổ vào P&L');
         setState(() => _preview = null);
       }
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

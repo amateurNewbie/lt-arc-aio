@@ -7,6 +7,7 @@ import '../../../core/api/api_exception.dart';
 import '../../../core/download/file_downloader.dart';
 import '../application/file_provider.dart';
 import '../data/file_repository.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 /// FR-17 — tệp đính kèm theo dự án (tải lên/xuống/xoá).
 class FilesTab extends ConsumerWidget {
@@ -21,7 +22,7 @@ class FilesTab extends ConsumerWidget {
     try {
       await ref.read(fileActionsProvider.notifier).upload(projectId, filename: picked.name, bytes: picked.bytes!);
     } on ApiException catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (context.mounted) showAppToast(context, e.message, error: true);
     }
   }
 
@@ -30,7 +31,7 @@ class FilesTab extends ConsumerWidget {
       final bytes = await ref.read(fileActionsProvider.notifier).download(file.id);
       await saveBytesToFile(fileName: file.name, bytes: bytes);
     } on ApiException catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (context.mounted) showAppToast(context, e.message, error: true);
     }
   }
 
@@ -50,7 +51,7 @@ class FilesTab extends ConsumerWidget {
     try {
       await ref.read(fileActionsProvider.notifier).delete(projectId, file.id);
     } on ApiException catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (context.mounted) showAppToast(context, e.message, error: true);
     }
   }
 

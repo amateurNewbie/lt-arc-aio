@@ -6,6 +6,7 @@ import '../../../core/api/api_exception.dart';
 import '../application/task_provider.dart';
 import '../data/task_repository.dart';
 import 'tasks_web_page.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 /// FR-5.4 — Kanban 3 cột: Cần làm / Đang làm / Đã hoàn thành. Web (trang toàn
 /// công ty, không embedded) dùng layout bám `LT-ARC-Web-UI_1.html` qua `TasksWebPage`.
@@ -112,12 +113,13 @@ class _TaskCard extends ConsumerWidget {
               ),
               FilledButton(
                 onPressed: () async {
+                  final close = PendingDialogClose.of(context);
                   try {
                     await ref.read(taskActionsProvider.notifier).updateProgress(task.id, progress);
-                    if (context.mounted) Navigator.of(context).pop();
+                    close.success('Đã cập nhật tiến độ');
                   } on ApiException catch (e) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+                      showAppToast(context, e.message, error: true);
                     }
                   }
                 },

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/app_toast.dart';
 import '../../../shared/widgets/web_badge.dart';
 import '../../departments/application/department_provider.dart';
 import '../../departments/data/department_repository.dart';
@@ -16,8 +17,7 @@ WebBadgeVariant _statusVariant(WorkItemStatus s) => switch (s) {
       WorkItemStatus.notStarted => WebBadgeVariant.outline,
     };
 
-/// FR-5.5 — "Hạng mục công việc": bóc tách khối lượng/đơn giá theo bộ phận,
-/// bám `LT-ARC-Web-UI_1.html` mục "Khai báo hạng mục công việc".
+/// FR-5.5 — tab Hạng mục công việc: bảng + popup thêm (bám HTML / Phase D).
 class WorkItemsTab extends ConsumerWidget {
   const WorkItemsTab({super.key, required this.projectId});
 
@@ -27,22 +27,23 @@ class WorkItemsTab extends ConsumerWidget {
     var progress = item.progress;
     await showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
           title: Text(item.name),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Slider(value: progress.toDouble(), min: 0, max: 100, divisions: 20, label: '$progress%', onChanged: (v) => setState(() => progress = v.round())),
+              Slider(value: progress.toDouble(), max: 100, divisions: 20, label: '$progress%', onChanged: (v) => setState(() => progress = v.round())),
               Text('$progress%'),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Huỷ')),
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Huỷ')),
             FilledButton(
               onPressed: () async {
+                final close = PendingDialogClose.of(ctx);
                 await ref.read(workItemActionsProvider.notifier).updateProgress(projectId, item.id, progress);
-                if (context.mounted) Navigator.of(context).pop();
+                close.success('Đã cập nhật tiến độ');
               },
               child: const Text('Cập nhật'),
             ),
@@ -58,96 +59,114 @@ class WorkItemsTab extends ConsumerWidget {
     final departmentsAsync = ref.watch(departmentListProvider);
     final currency = NumberFormat.decimalPattern('vi');
 
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Container(
-          decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Khai báo hạng mục công việc', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 4),
-                        Text('Bóc tách khối lượng, đơn giá và theo dõi tiến độ theo từng hạng mục của dự án.', style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
-                      ],
-                    ),
+                  const Text('Khai báo hạng mục công việc', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Bóc tách khối lượng, đơn giá và theo dõi tiến độ theo từng hạng mục.',
+                    style: TextStyle(fontSize: 12, color: AppColors.webMutedFg),
                   ),
-                  OutlinedButton.icon(onPressed: () => showWorkItemFormSheet(context, projectId), icon: const Icon(Icons.add, size: 16), label: const Text('Thêm hạng mục')),
                 ],
               ),
-              const SizedBox(height: 16),
-              itemsAsync.when(
-                data: (items) {
-                  if (items.isEmpty) return const Text('Chưa có hạng mục công việc nào');
-                  final departmentsById = {for (final d in departmentsAsync.value ?? const <Department>[]) d.id: d};
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      headingRowHeight: 32,
-                      dataRowMinHeight: 40,
-                      dataRowMaxHeight: 48,
-                      columns: const [
-                        DataColumn(label: Text('HẠNG MỤC', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
-                        DataColumn(label: Text('BỘ PHẬN', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
-                        DataColumn(label: Text('KHỐI LƯỢNG', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
-                        DataColumn(label: Text('ĐƠN GIÁ', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
-                        DataColumn(label: Text('THÀNH TIỀN', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
-                        DataColumn(label: Text('TIẾN ĐỘ', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
-                        DataColumn(label: Text('TRẠNG THÁI', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
-                      ],
-                      rows: [
-                        for (final item in items)
-                          DataRow(
-                            onSelectChanged: (_) => _editProgress(context, ref, item),
-                            cells: [
-                              DataCell(Text(item.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-                              DataCell(Text(departmentsById[item.departmentId]?.name ?? '—', style: const TextStyle(fontSize: 13))),
-                              DataCell(Text('${item.quantity} ${item.unit}', style: const TextStyle(fontSize: 13))),
-                              DataCell(Text('${currency.format(item.unitPrice)} ₫', style: const TextStyle(fontSize: 13))),
-                              DataCell(Text('${currency.format(item.amount)} ₫', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-                              DataCell(
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SizedBox(
-                                      width: 60,
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(3),
-                                        child: LinearProgressIndicator(
-                                          value: item.progress / 100,
-                                          minHeight: 6,
-                                          backgroundColor: AppColors.webMutedBg,
-                                          color: item.progress == 100 ? AppColors.webSuccess : AppColors.gold,
-                                        ),
-                                      ),
+            ),
+            FilledButton.icon(
+              onPressed: () => showWorkItemDialog(context, projectId),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Thêm hạng mục'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: itemsAsync.when(
+            data: (items) {
+              if (items.isEmpty) return const Center(child: Text('Chưa có hạng mục công việc nào'));
+              final departmentsById = {for (final d in departmentsAsync.value ?? const <Department>[]) d.id: d};
+              final total = items.fold<int>(0, (s, i) => s + i.amount);
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Tổng thành tiền: ${currency.format(total)} ₫', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          headingRowHeight: 40,
+                          dataRowMinHeight: 44,
+                          dataRowMaxHeight: 52,
+                          columns: const [
+                            DataColumn(label: Text('Hạng mục')),
+                            DataColumn(label: Text('Bộ phận')),
+                            DataColumn(label: Text('Khối lượng')),
+                            DataColumn(label: Text('Đơn giá'), numeric: true),
+                            DataColumn(label: Text('Thành tiền'), numeric: true),
+                            DataColumn(label: Text('Tiến độ')),
+                            DataColumn(label: Text('Trạng thái')),
+                          ],
+                          rows: [
+                            for (final item in items)
+                              DataRow(
+                                cells: [
+                                  DataCell(
+                                    InkWell(
+                                      onTap: () => _editProgress(context, ref, item),
+                                      child: Text(item.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                                     ),
-                                    const SizedBox(width: 8),
-                                    Text('${item.progress}%', style: const TextStyle(fontSize: 12)),
-                                  ],
-                                ),
+                                  ),
+                                  DataCell(Text(departmentsById[item.departmentId]?.name ?? '—', style: const TextStyle(fontSize: 13))),
+                                  DataCell(Text('${item.quantity} ${item.unit}', style: const TextStyle(fontSize: 13))),
+                                  DataCell(Text('${currency.format(item.unitPrice)} ₫', style: const TextStyle(fontSize: 13))),
+                                  DataCell(Text('${currency.format(item.amount)} ₫', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+                                  DataCell(
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        SizedBox(
+                                          width: 70,
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(3),
+                                            child: LinearProgressIndicator(
+                                              value: item.progress / 100,
+                                              minHeight: 6,
+                                              backgroundColor: AppColors.webMutedBg,
+                                              color: item.progress == 100 ? AppColors.webSuccess : AppColors.gold,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text('${item.progress}%', style: const TextStyle(fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+                                  DataCell(WebBadge(item.status.label, variant: _statusVariant(item.status))),
+                                ],
                               ),
-                              DataCell(WebBadge(item.status.label, variant: _statusVariant(item.status))),
-                            ],
-                          ),
-                      ],
+                          ],
+                        ),
+                      ),
                     ),
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Text('Lỗi tải dữ liệu: $e'),
-              ),
-            ],
+                  ),
+                ],
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('Lỗi tải dữ liệu: $e')),
           ),
         ),
-      ),
+      ],
     );
   }
 }

@@ -4,16 +4,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../application/project_provider.dart';
 import '../data/project_repository.dart';
-import 'project_detail_page.dart';
+import 'project_editor_page.dart';
 import 'projects_web_page.dart';
 
-/// FR-3 — Dự án. Web dùng layout bám `LT-ARC-Web-UI_1.html` qua `ProjectsWebPage`.
+/// FR-3 — Dự án. Web: list/create/detail trong shell (giữ sidebar).
 class ProjectsPage extends ConsumerWidget {
   const ProjectsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (kIsWeb) return const ProjectsWebPage();
+    if (kIsWeb) {
+      final pane = ref.watch(projectPaneProvider);
+      return switch (pane) {
+        ProjectPaneList() => const ProjectsWebPage(),
+        ProjectPaneCreate() => const ProjectEditorPage(key: ValueKey('project-create')),
+        ProjectPaneDetail(:final projectId, :final seed) => ProjectEditorPage(
+            key: ValueKey(projectId),
+            projectId: projectId,
+            seed: seed,
+          ),
+      };
+    }
     return const _ProjectsMobilePage();
   }
 }
@@ -26,7 +37,17 @@ class _ProjectsMobilePage extends ConsumerWidget {
     final projectsAsync = ref.watch(projectListProvider());
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Dự án')),
+      appBar: AppBar(
+        title: const Text('Dự án'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ProjectEditorPage()),
+            ),
+          ),
+        ],
+      ),
       body: projectsAsync.when(
         data: (projects) {
           if (projects.isEmpty) {
@@ -59,7 +80,7 @@ class _ProjectCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => ProjectDetailPage(projectId: project.id)),
+          MaterialPageRoute(builder: (_) => ProjectEditorPage(projectId: project.id)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(14),

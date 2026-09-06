@@ -21,6 +21,7 @@ from app.api.v1 import (
     projects,
     receivables,
     reports,
+    roles,
     settings,
     tasks,
     users,
@@ -31,6 +32,7 @@ from app.api.v1 import (
 api_router = APIRouter()
 api_router.include_router(auth.router)
 api_router.include_router(users.router)
+api_router.include_router(roles.router)
 api_router.include_router(departments.router)
 api_router.include_router(employees.router)
 api_router.include_router(leads.router)

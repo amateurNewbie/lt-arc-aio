@@ -11,18 +11,22 @@ PermissionGrantRepository permissionGrantRepository(Ref ref) => PermissionGrantR
 @riverpod
 Future<List<PermissionGrant>> grantsForUser(Ref ref, String userId) => ref.watch(permissionGrantRepositoryProvider).listFor(userId);
 
-@riverpod
+/// keepAlive: Actions chỉ được `ref.read` từ dialog — autoDispose sẽ dispose
+/// giữa `await` API rồi nổ khi `invalidate` (Ref after disposed).
+@Riverpod(keepAlive: true)
 class PermissionGrantActions extends _$PermissionGrantActions {
   @override
   void build() {}
 
   Future<void> create(String userId, {required String permissionGroup, List<String>? projectIds, DateTime? expiresAt}) async {
     await ref.read(permissionGrantRepositoryProvider).create(userId, permissionGroup: permissionGroup, projectIds: projectIds, expiresAt: expiresAt);
+    if (!ref.mounted) return;
     ref.invalidate(grantsForUserProvider);
   }
 
   Future<void> revoke(String userId, String grantId) async {
     await ref.read(permissionGrantRepositoryProvider).revoke(userId, grantId);
+    if (!ref.mounted) return;
     ref.invalidate(grantsForUserProvider);
   }
 }

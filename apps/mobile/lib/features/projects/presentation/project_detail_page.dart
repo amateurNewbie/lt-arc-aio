@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/money.dart';
 import '../../budget/presentation/budget_tab.dart';
 import '../../cashbook/presentation/cashbook_tab.dart';
 import '../../contracts/presentation/contracts_tab.dart';
@@ -10,23 +10,18 @@ import '../../debts/application/debt_provider.dart';
 import '../../files/presentation/files_tab.dart';
 import '../../reports/application/reports_provider.dart';
 import '../../reports/data/reports_repository.dart';
-import '../../tasks/presentation/tasks_page.dart';
+import '../../tasks/presentation/project_tasks_tab.dart';
 import '../../work_items/presentation/work_items_tab.dart';
 import '../application/project_provider.dart';
 import '../data/project_repository.dart';
-
-const _stageLabels = {
-  'design': 'Thiết kế',
-  'permit': 'Xin phép xây dựng',
-  'rough_construction': 'Thi công phần thô',
-  'interior_finish': 'Hoàn thiện nội thất',
-  'handover': 'Nghiệm thu & bàn giao',
-};
 
 /// FR-3.3 — trung tâm điều phối dữ liệu dự án, bám `LT-ARC-Web-UI_1.html`
 /// (`data-if="isProjectDetail"`): Tổng quan/Dự toán/Hợp đồng/Công việc/Hạng
 /// mục công việc/Thu&Chi (+ Tệp, mở rộng ngoài mockup nhưng vẫn giữ vì là chức
 /// năng thật đã có).
+///
+/// Phase A: navigation chính dùng [ProjectEditorPage]; page này giữ cho mobile
+/// tabbed fallback / tương thích.
 class ProjectDetailPage extends ConsumerWidget {
   const ProjectDetailPage({super.key, required this.projectId});
 
@@ -60,7 +55,7 @@ class ProjectDetailPage extends ConsumerWidget {
               _OverviewTab(project: project),
               BudgetTab(projectId: project.id),
               ContractsTab(projectId: project.id),
-              TasksPage(projectId: project.id, embedded: true),
+              ProjectTasksTab(projectId: project.id),
               WorkItemsTab(projectId: project.id),
               CashbookTab(projectId: project.id),
               FilesTab(projectId: project.id),
@@ -83,7 +78,6 @@ class _OverviewTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pnlAsync = ref.watch(profitLossReportProvider);
     final receivablesAsync = ref.watch(receivableListProvider);
-    final currency = NumberFormat.decimalPattern('vi');
 
     final pnl = (pnlAsync.value ?? const <ProjectPnl>[]).where((p) => p.projectId == project.id).firstOrNull;
     final receivable = (receivablesAsync.value ?? const []).where((r) => r.projectId == project.id).fold<int>(0, (s, r) => s + r.remaining);
@@ -97,20 +91,20 @@ class _OverviewTab extends ConsumerWidget {
           const SizedBox(height: 4),
           Text('${project.client} · ${project.category.label}${project.type != null ? ' — ${project.type}' : ''}', style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 16),
-          Row(
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
             children: [
-              Expanded(child: _MiniStat(label: 'Tiến độ', value: '${project.progress}%')),
-              Expanded(child: _MiniStat(label: 'Ngân sách', value: project.budget != null ? '${currency.format(project.budget)} ₫' : '—')),
-              Expanded(child: _MiniStat(label: 'Đã thu', value: pnl != null ? '${currency.format(pnl.revenue)} ₫' : '—')),
-              Expanded(child: _MiniStat(label: 'Tổng chi phí', value: pnl != null ? '${currency.format(pnl.totalCost)} ₫' : '—')),
-              Expanded(
-                child: _MiniStat(
-                  label: 'Lãi/Lỗ',
-                  value: pnl != null ? '${pnl.profit >= 0 ? '+' : ''}${currency.format(pnl.profit)} ₫' : '—',
-                  valueColor: pnl != null ? (pnl.profit >= 0 ? AppColors.webSuccess : AppColors.webDestructive) : null,
-                ),
+              _MiniStat(label: 'Tiến độ', value: '${project.progress}%'),
+              _MiniStat(label: 'Ngân sách', value: project.budget != null ? formatCompactVnd(project.budget!) : '—'),
+              _MiniStat(label: 'Đã thu', value: pnl != null ? formatCompactVnd(pnl.revenue) : '—'),
+              _MiniStat(label: 'Tổng chi phí', value: pnl != null ? formatCompactVnd(pnl.totalCost) : '—'),
+              _MiniStat(
+                label: 'Lãi/Lỗ',
+                value: pnl != null ? formatCompactVnd(pnl.profit, showSign: true) : '—',
+                valueColor: pnl != null ? (pnl.profit >= 0 ? AppColors.webSuccess : AppColors.webDestructive) : null,
               ),
-              Expanded(child: _MiniStat(label: 'Công nợ phải thu', value: '${currency.format(receivable)} ₫')),
+              _MiniStat(label: 'Công nợ phải thu', value: formatCompactVnd(receivable)),
             ],
           ),
           const SizedBox(height: 20),
@@ -127,7 +121,7 @@ class _OverviewTab extends ConsumerWidget {
                 if (project.stageProgress == null || project.stageProgress!.isEmpty)
                   const Text('Chưa có dữ liệu tiến độ theo giai đoạn cho dự án này.')
                 else
-                  for (final entry in project.stageProgress!.entries)
+                  for (final stage in project.stages.entries)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Column(
@@ -136,18 +130,40 @@ class _OverviewTab extends ConsumerWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(_stageLabels[entry.key] ?? entry.key, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                              Text('${entry.value}%', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg)),
+                              Text(projectStageLabels[stage.key] ?? stage.key, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                              Builder(
+                                builder: (context) {
+                                  final overdue = stage.value.deadline != null &&
+                                      stage.value.progress < 100 &&
+                                      DateTime(stage.value.deadline!.year, stage.value.deadline!.month, stage.value.deadline!.day)
+                                          .isBefore(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day));
+                                  return Text(
+                                    overdue ? '${stage.value.progress}% · trễ kế hoạch' : '${stage.value.progress}%',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: overdue ? AppColors.webDestructive : AppColors.webMutedFg,
+                                      fontWeight: overdue ? FontWeight.w600 : null,
+                                    ),
+                                  );
+                                },
+                              ),
                             ],
                           ),
                           const SizedBox(height: 6),
                           ClipRRect(
                             borderRadius: BorderRadius.circular(3),
                             child: LinearProgressIndicator(
-                              value: ((entry.value as num).toDouble()) / 100,
+                              value: stage.value.progress / 100,
                               minHeight: 6,
                               backgroundColor: AppColors.webMutedBg,
-                              color: (entry.value as num) >= 100 ? AppColors.webSuccess : AppColors.gold,
+                              color: stage.value.progress >= 100
+                                  ? AppColors.webSuccess
+                                  : (stage.value.deadline != null &&
+                                          stage.value.progress < 100 &&
+                                          DateTime(stage.value.deadline!.year, stage.value.deadline!.month, stage.value.deadline!.day)
+                                              .isBefore(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day))
+                                      ? AppColors.webDestructive
+                                      : AppColors.gold),
                             ),
                           ),
                         ],

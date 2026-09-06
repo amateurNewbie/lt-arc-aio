@@ -10,12 +10,16 @@ class ProjectCost {
     required this.costCategoryId,
     required this.amount,
     required this.date,
+    this.workItemId,
+    this.fundAccountId,
     this.note,
   });
 
   final String id;
   final String projectId;
   final String costCategoryId;
+  final String? workItemId;
+  final String? fundAccountId;
   final int amount;
   final DateTime date;
   final String? note;
@@ -24,6 +28,8 @@ class ProjectCost {
         id: json['id'] as String,
         projectId: json['project_id'] as String,
         costCategoryId: json['cost_category_id'] as String,
+        workItemId: json['work_item_id'] as String?,
+        fundAccountId: json['fund_account_id'] as String?,
         amount: json['amount'] as int,
         date: DateTime.parse(json['date'] as String),
         note: json['note'] as String?,
@@ -31,30 +37,30 @@ class ProjectCost {
 }
 
 class Payment {
-  const Payment({required this.id, required this.projectId, required this.amount, required this.date});
+  const Payment({
+    required this.id,
+    required this.projectId,
+    required this.contractMilestoneId,
+    required this.amount,
+    required this.date,
+    required this.fundAccountId,
+  });
 
   final String id;
   final String projectId;
+  final String contractMilestoneId;
   final int amount;
   final DateTime date;
+  final String fundAccountId;
 
   factory Payment.fromJson(Map<String, dynamic> json) => Payment(
         id: json['id'] as String,
         projectId: json['project_id'] as String,
+        contractMilestoneId: json['contract_milestone_id'] as String,
         amount: json['amount'] as int,
         date: DateTime.parse(json['date'] as String),
+        fundAccountId: json['fund_account_id'] as String,
       );
-}
-
-/// Một dòng sổ Thu&Chi hợp nhất để hiển thị (FR-6.4) — gộp từ 2 nguồn dữ liệu
-/// khác nhau ở backend (ProjectCost = Chi, Payment = Thu).
-class CashbookEntry {
-  const CashbookEntry({required this.id, required this.isInflow, required this.amount, required this.date, this.note});
-  final String id;
-  final bool isInflow;
-  final int amount;
-  final DateTime date;
-  final String? note;
 }
 
 class DuplicateCostWarning {
@@ -88,13 +94,14 @@ class CashbookRepository {
   }
 
   /// Trả về [ProjectCost] khi lưu thành công, hoặc [DuplicateCostWarning] khi
-  /// nghi trùng và caller cần hỏi lại người dùng trước khi gọi lại với
-  /// `confirmDuplicate: true` (FR-6.6).
+  /// nghi trùng và caller cần hỏi lại với `confirmDuplicate: true` (FR-6.6).
   Future<Object> createCost({
     required String projectId,
     required String costCategoryId,
     required int amount,
     required DateTime date,
+    String? workItemId,
+    String? fundAccountId,
     String? note,
     bool confirmDuplicate = false,
   }) async {
@@ -105,7 +112,9 @@ class CashbookRepository {
           'cost_category_id': costCategoryId,
           'amount': amount,
           'date': date.toIso8601String().split('T').first,
-          'note': note,
+          if (workItemId != null) 'work_item_id': workItemId,
+          if (fundAccountId != null) 'fund_account_id': fundAccountId,
+          if (note != null) 'note': note,
           'confirm_duplicate': confirmDuplicate,
         },
       );

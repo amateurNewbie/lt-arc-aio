@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/i18n/app_localizations.dart';
 import '../application/auth_provider.dart';
 import '../data/auth_repository.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -33,7 +34,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (next.hasError) {
         final failure = next.error;
         final message = failure is LoginFailure && failure.locked ? l10n.loginLocked : l10n.loginError;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        showAppToast(context, message, error: true);
       }
     });
 

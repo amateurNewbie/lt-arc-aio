@@ -14,7 +14,9 @@ Future<List<Receivable>> receivableList(Ref ref) => ref.watch(debtRepositoryProv
 @riverpod
 Future<List<Payable>> payableList(Ref ref) => ref.watch(debtRepositoryProvider).listPayables();
 
-@riverpod
+/// keepAlive: Actions chỉ được `ref.read` từ dialog — autoDispose sẽ dispose
+/// giữa `await` API rồi nổ khi `invalidate` (Ref after disposed).
+@Riverpod(keepAlive: true)
 class DebtActions extends _$DebtActions {
   @override
   void build() {}
@@ -26,12 +28,14 @@ class DebtActions extends _$DebtActions {
           costCategoryId: costCategoryId,
           totalAmount: totalAmount,
         );
+    if (!ref.mounted) return payable;
     ref.invalidate(payableListProvider);
     return payable;
   }
 
   Future<Payable> settlePayable({required String payableId, required int amount, required String fundAccountId}) async {
     final payable = await ref.read(debtRepositoryProvider).settlePayable(payableId: payableId, amount: amount, fundAccountId: fundAccountId);
+    if (!ref.mounted) return payable;
     ref.invalidate(payableListProvider);
     return payable;
   }

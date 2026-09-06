@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/web_badge.dart';
 import '../application/cost_category_provider.dart';
 import '../data/cost_category_repository.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 InputDecoration _fieldDecoration({String? hint}) => InputDecoration(
       hintText: hint,
@@ -43,9 +44,10 @@ class _CostCategoriesTabState extends ConsumerState<CostCategoriesTab> {
       if (mounted) {
         _nameController.clear();
         _descController.clear();
+        showAppToast(context, 'Đã thêm hạng mục chi phí');
       }
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

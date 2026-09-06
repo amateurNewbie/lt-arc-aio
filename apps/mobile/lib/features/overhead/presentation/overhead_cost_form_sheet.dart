@@ -6,6 +6,7 @@ import '../../../core/api/api_exception.dart';
 import '../../cost_categories/application/cost_category_provider.dart';
 import '../../cost_categories/data/cost_category_repository.dart';
 import '../application/overhead_provider.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 Future<void> showOverheadCostFormSheet(BuildContext context) {
   return showModalBottomSheet(context: context, isScrollControlled: true, builder: (_) => const _OverheadCostFormSheet());
@@ -29,6 +30,7 @@ class _OverheadCostFormSheetState extends ConsumerState<_OverheadCostFormSheet> 
     final amount = int.tryParse(_amountController.text) ?? 0;
     if (amount <= 0 || _categoryId == null) return;
     setState(() => _saving = true);
+    final close = PendingDialogClose.of(context);
     try {
       final month = '${_date.year.toString().padLeft(4, '0')}-${_date.month.toString().padLeft(2, '0')}';
       await ref.read(overheadActionsProvider.notifier).declareCost(
@@ -38,9 +40,9 @@ class _OverheadCostFormSheetState extends ConsumerState<_OverheadCostFormSheet> 
             month: month,
             note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
           );
-      if (mounted) Navigator.of(context).pop();
+      close.success('Đã thêm chi phí chung');
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

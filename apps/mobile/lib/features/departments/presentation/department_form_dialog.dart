@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_exception.dart';
 import '../../users/application/user_provider.dart';
 import '../application/department_provider.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 Future<void> showDepartmentFormDialog(BuildContext context) {
   return showDialog(context: context, builder: (_) => const _DepartmentFormDialog());
@@ -31,11 +32,12 @@ class _DepartmentFormDialogState extends ConsumerState<_DepartmentFormDialog> {
     final name = _nameController.text.trim();
     if (name.isEmpty) return;
     setState(() => _saving = true);
+    final close = PendingDialogClose.of(context);
     try {
       await ref.read(departmentActionsProvider.notifier).create(name: name, headUserId: _headUserId);
-      if (mounted) Navigator.of(context).pop();
+      close.success('Đã tạo bộ phận');
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

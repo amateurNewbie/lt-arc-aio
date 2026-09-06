@@ -5,6 +5,7 @@ import '../../../core/api/api_exception.dart';
 import '../../funds/application/fund_provider.dart';
 import '../application/contract_provider.dart';
 import '../data/contract_repository.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 Future<void> showCollectMilestoneDialog(BuildContext context, ContractMilestone milestone) {
   return showDialog(context: context, builder: (_) => _CollectDialog(milestone: milestone));
@@ -27,6 +28,7 @@ class _CollectDialogState extends ConsumerState<_CollectDialog> {
     final amount = int.tryParse(_amountController.text) ?? 0;
     if (amount <= 0 || _fundId == null) return;
     setState(() => _saving = true);
+    final close = PendingDialogClose.of(context);
     try {
       await ref.read(contractActionsProvider.notifier).collect(
             contractId: widget.milestone.contractId,
@@ -34,9 +36,9 @@ class _CollectDialogState extends ConsumerState<_CollectDialog> {
             amount: amount,
             fundAccountId: _fundId!,
           );
-      if (mounted) Navigator.of(context).pop();
+      close.success('Đã ghi nhận khoản thu');
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

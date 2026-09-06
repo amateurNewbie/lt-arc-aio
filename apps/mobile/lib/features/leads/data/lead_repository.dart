@@ -141,7 +141,13 @@ class LeadRepository {
 
   Future<Lead> updateStatus(String leadId, LeadStatus status, {String? note}) async {
     try {
-      final response = await _apiClient.dio.patch('/api/leads/$leadId', data: {'status': status.wire, 'note': note});
+      final response = await _apiClient.dio.patch(
+        '/api/leads/$leadId',
+        data: {
+          'status': status.wire,
+          if (note != null) 'note': note,
+        },
+      );
       return Lead.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDio(e);

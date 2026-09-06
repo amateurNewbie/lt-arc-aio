@@ -3,9 +3,6 @@ name: Build & Push API image
 on:
   push:
     branches: [main]
-    paths:
-      - "apps/api/**"
-      - ".github/workflows/build-api.yml"
   workflow_dispatch:
 
 env:

@@ -21,7 +21,8 @@ from app.models.pay_profile import PayProfile  # noqa: F401
 from app.models.payment import Payment  # noqa: F401
 from app.models.payroll import PayrollRecord  # noqa: F401
 from app.models.permission_grant import UserPermissionGrant  # noqa: F401
-from app.models.project import Project, ProjectDepartmentHead  # noqa: F401
+from app.models.role_permission import RolePermissionDefault  # noqa: F401
+from app.models.project import Project, ProjectDepartmentHead, ProjectMember  # noqa: F401
 from app.models.project_cost import ProjectCost  # noqa: F401
 from app.models.task import Task  # noqa: F401
 from app.models.user import User  # noqa: F401

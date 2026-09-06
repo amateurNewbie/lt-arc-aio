@@ -7,6 +7,7 @@ from sqlmodel import SQLModel
 class ProjectCostCreate(SQLModel):
     cost_category_id: UUID
     work_item_id: UUID | None = None
+    fund_account_id: UUID | None = None
     amount: int
     date: date_type | None = None
     note: str | None = None
@@ -19,6 +20,7 @@ class ProjectCostRead(SQLModel):
     project_id: UUID
     cost_category_id: UUID
     work_item_id: UUID | None
+    fund_account_id: UUID | None = None
     amount: int
     date: date_type
     note: str | None

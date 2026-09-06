@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_exception.dart';
 import '../application/settings_provider.dart';
 import '../data/settings_repository.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 /// FR-20.1/20.2 — thông tin chung studio + cấu hình số ngày nhắc (FR-19.2/FR-8.4).
 class StudioInfoTab extends ConsumerStatefulWidget {
@@ -48,9 +49,9 @@ class _StudioInfoTabState extends ConsumerState<StudioInfoTab> {
         'debt_reminder_days': int.tryParse(_debtReminderController.text.trim()),
         'overhead_reminder_day': int.tryParse(_overheadReminderController.text.trim()),
       });
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã lưu')));
+      if (mounted) showAppToast(context, 'Đã lưu');
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

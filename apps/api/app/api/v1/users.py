@@ -30,9 +30,9 @@ async def list_users_endpoint(
 async def create_user_endpoint(
     payload: UserCreate,
     session: AsyncSession = Depends(get_session),
-    _admin: User = Depends(require_roles(Role.ADMIN)),
+    _actor: User = Depends(require_roles(Role.ADMIN, Role.DIRECTOR)),
 ) -> UserRead:
-    """FR-1.3 — chỉ ADMIN tạo tài khoản mới."""
+    """FR-1.3 — chỉ ADMIN / Giám đốc tạo tài khoản mới (kèm gán role)."""
     user = await create_user(
         session,
         email=payload.email,

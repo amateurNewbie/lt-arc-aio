@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_exception.dart';
 import '../../funds/application/fund_provider.dart';
 import '../application/payroll_provider.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 Future<void> showPayrollPayDialog(BuildContext context, String month) {
   return showDialog(context: context, builder: (_) => _PayrollPayDialog(month: month));
@@ -25,11 +26,12 @@ class _PayrollPayDialogState extends ConsumerState<_PayrollPayDialog> {
   Future<void> _submit() async {
     if (_fundId == null) return;
     setState(() => _saving = true);
+    final close = PendingDialogClose.of(context);
     try {
       await ref.read(payrollActionsProvider.notifier).pay(widget.month, fundAccountId: _fundId!);
-      if (mounted) Navigator.of(context).pop();
+      close.success('Đã chi trả lương');
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

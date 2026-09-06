@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/web_badge.dart';
 import '../../users/data/user_repository.dart';
 import '../application/role_preview_provider.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 const _previewableRoles = ['DIRECTOR', 'DEPARTMENT_HEAD', 'EMPLOYEE'];
 
@@ -33,10 +34,10 @@ class _RolePreviewTabState extends ConsumerState<RolePreviewTab> {
     try {
       await ref.read(rolePreviewProvider.notifier).activate(_role);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Đang xem thử vai trò: ${_role.roleLabel}')));
+        showAppToast(context, 'Đang xem thử vai trò: ${_role.roleLabel}');
       }
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _activating = false);
     }

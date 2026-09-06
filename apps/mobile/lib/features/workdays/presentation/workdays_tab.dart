@@ -5,6 +5,7 @@ import '../../../core/api/api_exception.dart';
 import '../../employees/application/employee_provider.dart';
 import '../../users/application/user_provider.dart';
 import '../application/workdays_provider.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 String _monthKey(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}';
 
@@ -56,9 +57,9 @@ class _WorkdaysTabState extends ConsumerState<WorkdaysTab> {
           if (double.tryParse(entry.value.text.trim()) != null) entry.key: double.parse(entry.value.text.trim()),
       };
       await ref.read(workdaysActionsProvider.notifier).save(_monthKey(_selectedMonth), entries);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã lưu số công')));
+      if (mounted) showAppToast(context, 'Đã lưu số công');
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

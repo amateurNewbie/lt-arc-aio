@@ -14,13 +14,16 @@ Future<List<FundAccount>> fundList(Ref ref) => ref.watch(fundRepositoryProvider)
 @riverpod
 Future<List<CashLedgerEntry>> fundLedger(Ref ref, String fundId) => ref.watch(fundRepositoryProvider).ledger(fundId);
 
-@riverpod
+/// keepAlive: Actions chỉ được `ref.read` từ dialog — autoDispose sẽ dispose
+/// giữa `await` API rồi nổ khi `invalidate` (Ref after disposed).
+@Riverpod(keepAlive: true)
 class FundActions extends _$FundActions {
   @override
   void build() {}
 
   Future<FundAccount> create({required String name, required FundType type, int balance = 0}) async {
     final fund = await ref.read(fundRepositoryProvider).create(name: name, type: type, balance: balance);
+    if (!ref.mounted) return fund;
     ref.invalidate(fundListProvider);
     return fund;
   }

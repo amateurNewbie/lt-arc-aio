@@ -71,72 +71,70 @@ class DashboardWebPage extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 20),
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _WebCard(
-                        title: 'Dự án gần đây',
-                        child: projectsAsync.when(
-                          data: (list) {
-                            final recent = list.take(5).toList();
-                            if (recent.isEmpty) return const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Text('Chưa có dự án nào'));
-                            return Column(
-                              children: [
-                                for (final p in recent)
-                                  ListTile(
-                                    dense: true,
-                                    contentPadding: EdgeInsets.zero,
-                                    title: Text(p.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                                    subtitle: Text('${p.code} · ${p.client}', style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
-                                    trailing: Wrap(
-                                      spacing: 6,
-                                      children: [
-                                        WebBadge(p.category.label, variant: _categoryVariant(p.category)),
-                                        WebBadge(p.status.label, variant: WebBadgeVariant.secondary),
-                                      ],
-                                    ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _WebCard(
+                      title: 'Dự án gần đây',
+                      child: projectsAsync.when(
+                        data: (list) {
+                          final recent = list.take(5).toList();
+                          if (recent.isEmpty) return const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Text('Chưa có dự án nào'));
+                          return Column(
+                            children: [
+                              for (final p in recent)
+                                ListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  title: Text(p.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                                  subtitle: Text('${p.code} · ${p.client}', style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+                                  trailing: Wrap(
+                                    spacing: 6,
+                                    children: [
+                                      WebBadge(p.category.label, variant: _categoryVariant(p.category)),
+                                      WebBadge(p.status.label, variant: WebBadgeVariant.secondary),
+                                    ],
                                   ),
-                              ],
-                            );
-                          },
-                          loading: () => const Center(child: CircularProgressIndicator()),
-                          error: (e, _) => Text('Lỗi tải dữ liệu: $e'),
-                        ),
+                                ),
+                            ],
+                          );
+                        },
+                        loading: () => const Center(child: CircularProgressIndicator()),
+                        error: (e, _) => Text('Lỗi tải dữ liệu: $e'),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _WebCard(
-                        title: 'Hoạt động gần đây',
-                        child: activitiesAsync.when(
-                          data: (activities) {
-                            if (activities.isEmpty) return const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Text('Chưa có hoạt động nào'));
-                            return Column(
-                              children: [
-                                for (final a in activities.take(6))
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 7),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(child: Text(a.title, style: const TextStyle(fontSize: 13))),
-                                        const SizedBox(width: 8),
-                                        Text(DateFormat('dd/MM HH:mm').format(a.createdAt.toLocal()), style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
-                                      ],
-                                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _WebCard(
+                      title: 'Hoạt động gần đây',
+                      child: activitiesAsync.when(
+                        data: (activities) {
+                          if (activities.isEmpty) return const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Text('Chưa có hoạt động nào'));
+                          return Column(
+                            children: [
+                              for (final a in activities.take(6))
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 7),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(child: Text(a.title, style: const TextStyle(fontSize: 13))),
+                                      const SizedBox(width: 8),
+                                      Text(DateFormat('dd/MM HH:mm').format(a.createdAt.toLocal()), style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+                                    ],
                                   ),
-                              ],
-                            );
-                          },
-                          loading: () => const Center(child: CircularProgressIndicator()),
-                          error: (e, _) => Text('Lỗi tải hoạt động: $e'),
-                        ),
+                                ),
+                            ],
+                          );
+                        },
+                        loading: () => const Center(child: CircularProgressIndicator()),
+                        error: (e, _) => Text('Lỗi tải hoạt động: $e'),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
               _OverdueTasksCard(tasks: overdueTasks),
@@ -164,6 +162,7 @@ class _WebCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [

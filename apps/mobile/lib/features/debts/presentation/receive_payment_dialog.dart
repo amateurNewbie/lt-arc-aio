@@ -7,6 +7,7 @@ import '../../contracts/data/contract_repository.dart';
 import '../../funds/application/fund_provider.dart';
 import '../../projects/application/project_provider.dart';
 import '../../projects/data/project_repository.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 /// FR-10.1/9.3 — ghi nhận thu tiền một đợt thanh toán từ trang Công nợ,
 /// không giới hạn theo dự án đang xem (khác `contract_form_sheet.dart` vốn
@@ -35,6 +36,7 @@ class _ReceivePaymentDialogState extends ConsumerState<_ReceivePaymentDialog> {
     final amount = int.tryParse(_amountController.text.trim());
     if (_contract == null || _milestoneId == null || amount == null || _fundAccountId == null) return;
     setState(() => _saving = true);
+    final close = PendingDialogClose.of(context);
     try {
       await ref.read(contractActionsProvider.notifier).collect(
             contractId: _contract!.id,
@@ -42,9 +44,9 @@ class _ReceivePaymentDialogState extends ConsumerState<_ReceivePaymentDialog> {
             amount: amount,
             fundAccountId: _fundAccountId!,
           );
-      if (mounted) Navigator.of(context).pop();
+      close.success('Đã ghi nhận thanh toán');
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

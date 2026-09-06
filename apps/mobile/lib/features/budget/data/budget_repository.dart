@@ -78,18 +78,26 @@ class BudgetEstimate {
 }
 
 class BudgetLineInput {
-  const BudgetLineInput({required this.costCategoryId, required this.unit, required this.quantity, required this.unitPrice});
+  const BudgetLineInput({
+    required this.costCategoryId,
+    required this.unit,
+    required this.quantity,
+    required this.unitPrice,
+    this.description,
+  });
 
   final String costCategoryId;
   final String unit;
   final double quantity;
   final int unitPrice;
+  final String? description;
 
   Map<String, dynamic> toJson() => {
         'cost_category_id': costCategoryId,
         'unit': unit,
         'quantity': quantity,
         'unit_price': unitPrice,
+        if (description != null) 'description': description,
       };
 }
 
@@ -112,6 +120,19 @@ class BudgetRepository {
       final response = await _apiClient.dio.post(
         '/api/projects/$projectId/budget',
         data: {'lines': lines.map((l) => l.toJson()).toList()},
+      );
+      return BudgetEstimate.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  /// Thêm 1 dòng vào draft hiện có (hoặc tạo draft mới nếu chưa có).
+  Future<BudgetEstimate> addLine(String projectId, BudgetLineInput line) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '/api/projects/$projectId/budget/lines',
+        data: line.toJson(),
       );
       return BudgetEstimate.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {

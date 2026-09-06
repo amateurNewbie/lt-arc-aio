@@ -14,6 +14,7 @@ import '../../users/data/user_repository.dart';
 import '../application/payroll_provider.dart';
 import '../data/payroll_repository.dart';
 import 'payroll_pay_dialog.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 String _monthKey(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}';
 
@@ -48,7 +49,7 @@ class _PayrollTabState extends ConsumerState<PayrollTab> {
     try {
       await ref.read(payrollActionsProvider.notifier).run(_monthKey(_selectedMonth));
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _running = false);
     }

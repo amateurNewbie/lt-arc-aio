@@ -19,10 +19,6 @@ class PermissionGroup(StrEnum):
     WORKDAYS_ENTRY = "WORKDAYS_ENTRY"
 
 
-# Vai trò có toàn quyền nghiệp vụ mặc định trên mọi nhóm quyền (RBAC matrix SRS §2.6:
-# Admin/Director đều "Toàn quyền"/"Có" trên các module tài chính).
+# Seed / fallback khi bảng rolepermissiondefault chưa có dòng:
+# Admin/Director toàn quyền 6 nhóm (RBAC matrix SRS §2.6).
 ROLES_WITH_ALL_GRANTS_BY_DEFAULT = {Role.ADMIN, Role.DIRECTOR}
-
-
-def role_has_default_grant(role: Role, group: PermissionGroup) -> bool:
-    return role in ROLES_WITH_ALL_GRANTS_BY_DEFAULT

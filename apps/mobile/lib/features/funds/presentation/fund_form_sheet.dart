@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_exception.dart';
 import '../application/fund_provider.dart';
 import '../data/fund_repository.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 Future<void> showFundFormSheet(BuildContext context) {
   return showModalBottomSheet(context: context, isScrollControlled: true, builder: (_) => const _FundFormSheet());
@@ -24,11 +25,12 @@ class _FundFormSheetState extends ConsumerState<_FundFormSheet> {
   Future<void> _submit() async {
     if (_nameController.text.trim().isEmpty) return;
     setState(() => _saving = true);
+    final close = PendingDialogClose.of(context);
     try {
       await ref.read(fundActionsProvider.notifier).create(name: _nameController.text.trim(), type: _type);
-      if (mounted) Navigator.of(context).pop();
+      close.success('Đã tạo quỹ');
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

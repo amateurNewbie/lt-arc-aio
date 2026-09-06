@@ -12,13 +12,16 @@ EmployeeRepository employeeRepository(Ref ref) => EmployeeRepository(ref.watch(a
 @riverpod
 Future<List<Employee>> employeeList(Ref ref) => ref.watch(employeeRepositoryProvider).list();
 
-@riverpod
+/// keepAlive: Actions chỉ được `ref.read` từ dialog — autoDispose sẽ dispose
+/// giữa `await` API rồi nổ khi `invalidate` (Ref after disposed).
+@Riverpod(keepAlive: true)
 class EmployeeActions extends _$EmployeeActions {
   @override
   void build() {}
 
   Future<void> create({required String userId, String? phone, DateTime? hireDate, String? payProfileId}) async {
     await ref.read(employeeRepositoryProvider).create(userId: userId, phone: phone, hireDate: hireDate, payProfileId: payProfileId);
+    if (!ref.mounted) return;
     ref.invalidate(employeeListProvider);
   }
 
@@ -26,6 +29,7 @@ class EmployeeActions extends _$EmployeeActions {
     await ref
         .read(employeeRepositoryProvider)
         .updatePay(employeeId, payProfileId: payProfileId, dailyRateOverride: dailyRateOverride, allowanceOverrides: allowanceOverrides);
+    if (!ref.mounted) return;
     ref.invalidate(employeeListProvider);
   }
 }

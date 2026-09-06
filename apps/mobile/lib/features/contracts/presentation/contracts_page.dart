@@ -11,6 +11,7 @@ import '../../projects/data/project_repository.dart';
 import '../application/contract_provider.dart';
 import '../data/contract_repository.dart';
 import 'contract_form_sheet.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 WebBadgeVariant _statusVariant(ContractStatus s) => switch (s) {
       ContractStatus.active => WebBadgeVariant.secondary,
@@ -250,10 +251,10 @@ class _CollectMilestoneCardState extends ConsumerState<_CollectMilestoneCard> {
           _milestoneId = null;
           _fundAccountId = null;
         });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã lưu khoản thu')));
+        showAppToast(context, 'Đã lưu khoản thu');
       }
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

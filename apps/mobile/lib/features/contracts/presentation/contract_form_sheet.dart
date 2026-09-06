@@ -5,6 +5,7 @@ import '../../../core/api/api_exception.dart';
 import '../../projects/data/project_repository.dart';
 import '../application/contract_provider.dart';
 import '../data/contract_repository.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 Future<void> showContractFormSheet(BuildContext context, String projectId) {
   return showModalBottomSheet(context: context, isScrollControlled: true, builder: (_) => _ContractFormSheet(projectId: projectId));
@@ -38,6 +39,7 @@ class _ContractFormSheetState extends ConsumerState<_ContractFormSheet> {
     if (value <= 0 || (_totalRatio - 100).abs() > 0.01) return;
 
     setState(() => _saving = true);
+    final close = PendingDialogClose.of(context);
     try {
       await ref.read(contractActionsProvider.notifier).create(
             projectId: widget.projectId,
@@ -45,9 +47,9 @@ class _ContractFormSheetState extends ConsumerState<_ContractFormSheet> {
             value: value,
             milestones: _milestones.map((m) => MilestoneInput(name: m.name, ratio: m.ratio, isRetention: m.isRetention)).toList(),
           );
-      if (mounted) Navigator.of(context).pop();
+      close.success('Đã tạo hợp đồng');
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

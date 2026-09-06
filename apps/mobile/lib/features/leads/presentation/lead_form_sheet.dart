@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../application/lead_provider.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 Future<void> showLeadFormSheet(BuildContext context) {
   return showModalBottomSheet(
@@ -36,16 +37,17 @@ class _LeadFormSheetState extends ConsumerState<_LeadFormSheet> {
   Future<void> _submit() async {
     if (_nameController.text.trim().isEmpty) return;
     setState(() => _saving = true);
+    final close = PendingDialogClose.of(context);
     try {
       await ref.read(leadActionsProvider.notifier).create(
             name: _nameController.text.trim(),
             phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
             need: _needController.text.trim().isEmpty ? null : _needController.text.trim(),
           );
-      if (mounted) Navigator.of(context).pop();
+      close.success('Đã tạo khách hàng tiềm năng');
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        showAppToast(context, e.message, error: true);
       }
     } finally {
       if (mounted) setState(() => _saving = false);

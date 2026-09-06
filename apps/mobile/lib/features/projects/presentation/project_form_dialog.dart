@@ -5,6 +5,7 @@ import '../../../core/api/api_exception.dart';
 import '../../users/application/user_provider.dart';
 import '../application/project_provider.dart';
 import '../data/project_repository.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 Future<void> showProjectFormDialog(BuildContext context) {
   return showDialog(context: context, builder: (_) => const _ProjectFormDialog());
@@ -32,6 +33,7 @@ class _ProjectFormDialogState extends ConsumerState<_ProjectFormDialog> {
     final client = _clientController.text.trim();
     if (name.isEmpty || client.isEmpty || _managerId == null) return;
     setState(() => _saving = true);
+    final close = PendingDialogClose.of(context);
     try {
       await ref.read(projectActionsProvider.notifier).create(
             name: name,
@@ -42,9 +44,9 @@ class _ProjectFormDialogState extends ConsumerState<_ProjectFormDialog> {
             area: double.tryParse(_areaController.text.trim()),
             budget: int.tryParse(_budgetController.text.trim()),
           );
-      if (mounted) Navigator.of(context).pop();
+      close.success('Đã tạo dự án');
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

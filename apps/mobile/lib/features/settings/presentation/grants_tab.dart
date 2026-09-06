@@ -8,6 +8,7 @@ import '../../users/application/user_provider.dart';
 import '../../users/data/user_repository.dart';
 import '../application/permission_grant_provider.dart';
 import '../data/permission_grant_repository.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 /// FR-1.7/1.8 — cấp/thu hồi quyền bổ sung theo người dùng.
 class GrantsTab extends ConsumerStatefulWidget {
@@ -109,15 +110,16 @@ class _AddGrantSheetState extends ConsumerState<_AddGrantSheet> {
 
   Future<void> _submit() async {
     setState(() => _saving = true);
+    final close = PendingDialogClose.of(context);
     try {
       await ref.read(permissionGrantActionsProvider.notifier).create(
             widget.userId,
             permissionGroup: _group,
             projectIds: _allProjects ? null : _selectedProjectIds.toList(),
           );
-      if (mounted) Navigator.of(context).pop();
+      close.success('Đã thêm phân quyền');
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

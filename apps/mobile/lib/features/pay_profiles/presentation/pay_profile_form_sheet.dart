@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_exception.dart';
 import '../application/pay_profile_provider.dart';
 import '../data/pay_profile_repository.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 Future<void> showPayProfileFormSheet(BuildContext context, {PayProfile? profile}) {
   return showModalBottomSheet(
@@ -49,15 +50,16 @@ class _PayProfileFormSheetState extends ConsumerState<_PayProfileFormSheet> {
         .toList();
 
     setState(() => _saving = true);
+    final close = PendingDialogClose.of(context);
     try {
       if (_isEdit) {
         await ref.read(payProfileActionsProvider.notifier).update(widget.profile!.id, dailyRate: dailyRate, allowances: allowances);
       } else {
         await ref.read(payProfileActionsProvider.notifier).create(roleTitle: roleTitle, dailyRate: dailyRate, allowances: allowances);
       }
-      if (mounted) Navigator.of(context).pop();
+      close.success('Đã lưu hồ sơ lương');
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

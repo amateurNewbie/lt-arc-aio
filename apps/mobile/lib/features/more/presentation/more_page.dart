@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../auth/application/auth_provider.dart';
 import '../../debts/presentation/debts_page.dart';
 import '../../departments/presentation/departments_page.dart';
 import '../../finance/presentation/finance_page.dart';
@@ -8,11 +10,11 @@ import '../../settings/presentation/settings_page.dart';
 
 /// Menu module chưa có chỗ trên bottom nav (Tài chính, Công nợ...) — đúng
 /// concept "topbar menu" của LT-ARC-Mobile-UI_1.html (SRS §2.7.1).
-class MorePage extends StatelessWidget {
+class MorePage extends ConsumerWidget {
   const MorePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(title: const Text('Menu')),
       body: ListView(
@@ -48,9 +50,15 @@ class MorePage extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.settings_outlined),
             title: const Text('Cài đặt'),
-            subtitle: const Text('Thông tin studio, bảo mật, phân quyền, xem thử vai trò'),
+            subtitle: const Text('Tài khoản, người dùng, phân quyền, xem thử vai trò'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsPage())),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Đăng xuất'),
+            onTap: () => ref.read(authProvider.notifier).logout(),
           ),
         ],
       ),

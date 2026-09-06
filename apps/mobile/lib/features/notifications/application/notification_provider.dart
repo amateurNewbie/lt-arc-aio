@@ -11,13 +11,16 @@ NotificationRepository notificationRepository(Ref ref) => NotificationRepository
 @riverpod
 Future<List<AppNotification>> notificationList(Ref ref) => ref.watch(notificationRepositoryProvider).list();
 
-@riverpod
+/// keepAlive: Actions chỉ được `ref.read` từ dialog — autoDispose sẽ dispose
+/// giữa `await` API rồi nổ khi `invalidate` (Ref after disposed).
+@Riverpod(keepAlive: true)
 class NotificationActions extends _$NotificationActions {
   @override
   void build() {}
 
   Future<void> markRead(String id) async {
     await ref.read(notificationRepositoryProvider).markRead(id);
+    if (!ref.mounted) return;
     ref.invalidate(notificationListProvider);
   }
 }

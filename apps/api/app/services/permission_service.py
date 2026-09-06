@@ -5,10 +5,11 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.clock import utcnow
-from app.core.permissions import PermissionGroup, Role, role_has_default_grant
+from app.core.permissions import PermissionGroup
 from app.models.enums import GrantScopeType
 from app.models.permission_grant import UserPermissionGrant
 from app.models.user import User
+from app.services.role_permission_service import role_has_default_grant
 
 
 async def has_permission(
@@ -18,7 +19,7 @@ async def has_permission(
     project_id: UUID | None = None,
 ) -> bool:
     """FR-1.7 — effective = defaults(role) ∪ grants(user) còn hiệu lực."""
-    if role_has_default_grant(user.role, group):
+    if await role_has_default_grant(session, user.role, group):
         return True
 
     now = utcnow()

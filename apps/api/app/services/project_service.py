@@ -1,13 +1,19 @@
 from datetime import date
 from uuid import UUID
 
-from sqlmodel import select
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.clock import utcnow
 from app.core.permissions import Role
 from app.models.enums import ProjectCategory, ProjectStatus
-from app.models.project import Project, ProjectDepartmentHead
+from app.models.project import (
+    Project,
+    ProjectDepartmentHead,
+    ProjectMember,
+    default_stage_progress,
+    normalize_stage_progress,
+)
 from app.models.user import User
 from app.services.activity_service import log_activity
 
@@ -22,6 +28,54 @@ async def generate_project_code(session: AsyncSession, *, on: date | None = None
     return f"{prefix}{next_seq:02d}"
 
 
+async def _replace_members(session: AsyncSession, project_id: UUID, user_ids: list[UUID]) -> list[UUID]:
+    existing = await session.exec(select(ProjectMember).where(ProjectMember.project_id == project_id))
+    for row in existing.all():
+        await session.delete(row)
+    await session.flush()
+
+    unique_ids = list(dict.fromkeys(user_ids))
+    for user_id in unique_ids:
+        session.add(ProjectMember(project_id=project_id, user_id=user_id))
+    await session.flush()
+    return unique_ids
+
+
+async def get_member_ids(session: AsyncSession, project_id: UUID) -> list[UUID]:
+    result = await session.exec(select(ProjectMember.user_id).where(ProjectMember.project_id == project_id))
+    return list(result.all())
+
+
+async def user_can_access_project(session: AsyncSession, user: User, project: Project) -> bool:
+    """FR-3.5 — Admin/Giám đốc xem tất cả; TB chỉ DA được gán (manager/head/member)."""
+    if user.role in (Role.ADMIN, Role.DIRECTOR):
+        return True
+    if user.role != Role.DEPARTMENT_HEAD:
+        return True
+
+    if project.manager_id == user.id:
+        return True
+    if project.construction_head_id == user.id or project.design_head_id == user.id:
+        return True
+
+    head = await session.exec(
+        select(ProjectDepartmentHead).where(
+            ProjectDepartmentHead.project_id == project.id,
+            ProjectDepartmentHead.user_id == user.id,
+        )
+    )
+    if head.first() is not None:
+        return True
+
+    member = await session.exec(
+        select(ProjectMember).where(
+            ProjectMember.project_id == project.id,
+            ProjectMember.user_id == user.id,
+        )
+    )
+    return member.first() is not None
+
+
 async def create_project(
     session: AsyncSession,
     *,
@@ -34,8 +88,12 @@ async def create_project(
     area: float | None = None,
     budget: int | None = None,
     lead_id: UUID | None = None,
+    construction_head_id: UUID | None = None,
+    design_head_id: UUID | None = None,
+    member_ids: list[UUID] | None = None,
     start_date: date | None = None,
     due_date: date | None = None,
+    stage_progress: dict | None = None,
 ) -> Project:
     """FR-3.1 — chỉ ADMIN/DIRECTOR tạo dự án (kiểm tra ở router qua require_roles)."""
     code = await generate_project_code(session)
@@ -48,11 +106,20 @@ async def create_project(
         area=area,
         budget=budget,
         manager_id=manager_id,
+        construction_head_id=construction_head_id,
+        design_head_id=design_head_id,
         lead_id=lead_id,
         start_date=start_date,
         due_date=due_date,
+        stage_progress=normalize_stage_progress(stage_progress) if stage_progress is not None else default_stage_progress(),
+        progress=0,
     )
     session.add(project)
+    await session.flush()
+
+    if member_ids:
+        await _replace_members(session, project.id, member_ids)
+
     await session.commit()
     await session.refresh(project)
 
@@ -63,6 +130,55 @@ async def create_project(
         user_id=actor.id,
         project_id=project.id,
     )
+    return project
+
+
+async def update_project(
+    session: AsyncSession,
+    project: Project,
+    *,
+    fields: dict,
+) -> Project:
+    """Cập nhật theo dict đã `exclude_unset` — cho phép gán null để xoá head/lead."""
+    if "name" in fields:
+        project.name = fields["name"]
+    if "client" in fields:
+        project.client = fields["client"]
+    if "category" in fields:
+        project.category = fields["category"]
+    if "manager_id" in fields and fields["manager_id"] is not None:
+        project.manager_id = fields["manager_id"]
+    if "construction_head_id" in fields:
+        project.construction_head_id = fields["construction_head_id"]
+    if "design_head_id" in fields:
+        project.design_head_id = fields["design_head_id"]
+    if "lead_id" in fields:
+        project.lead_id = fields["lead_id"]
+    if "type" in fields:
+        project.type = fields["type"]
+    if "area" in fields:
+        project.area = fields["area"]
+    if "budget" in fields:
+        project.budget = fields["budget"]
+    if "status" in fields:
+        project.status = fields["status"]
+    if "start_date" in fields:
+        project.start_date = fields["start_date"]
+    if "due_date" in fields:
+        project.due_date = fields["due_date"]
+    if "stage_progress" in fields and fields["stage_progress"] is not None:
+        project.stage_progress = normalize_stage_progress(fields["stage_progress"])
+        stages = project.stage_progress or {}
+        values = [int((stages.get(k) or {}).get("progress") or 0) for k in stages]
+        if values:
+            project.progress = round(sum(values) / len(values))
+
+    if "member_ids" in fields and fields["member_ids"] is not None:
+        await _replace_members(session, project.id, list(fields["member_ids"]))
+
+    session.add(project)
+    await session.commit()
+    await session.refresh(project)
     return project
 
 
@@ -77,8 +193,15 @@ async def list_projects(
     query = select(Project)
 
     if actor.role == Role.DEPARTMENT_HEAD:
-        own_project_ids = select(ProjectDepartmentHead.project_id).where(ProjectDepartmentHead.user_id == actor.id)
-        query = query.where(Project.id.in_(own_project_ids))
+        head_ids = select(ProjectDepartmentHead.project_id).where(ProjectDepartmentHead.user_id == actor.id)
+        member_ids = select(ProjectMember.project_id).where(ProjectMember.user_id == actor.id)
+        query = query.where(
+            (Project.id.in_(head_ids))
+            | (Project.id.in_(member_ids))
+            | (Project.manager_id == actor.id)
+            | (Project.construction_head_id == actor.id)
+            | (Project.design_head_id == actor.id)
+        )
 
     if status is not None:
         query = query.where(Project.status == status)
@@ -88,7 +211,7 @@ async def list_projects(
         like = f"%{search}%"
         query = query.where((Project.name.ilike(like)) | (Project.code.ilike(like)) | (Project.client.ilike(like)))
 
-    result = await session.exec(query.order_by(Project.created_at.desc()))
+    result = await session.exec(query.order_by(col(Project.created_at).desc()))
     return list(result.all())
 
 
@@ -109,6 +232,16 @@ async def assign_department_heads(
     return created
 
 
+async def replace_project_members(
+    session: AsyncSession,
+    project_id: UUID,
+    user_ids: list[UUID],
+) -> list[UUID]:
+    ids = await _replace_members(session, project_id, user_ids)
+    await session.commit()
+    return ids
+
+
 async def update_progress(
     session: AsyncSession,
     project: Project,
@@ -119,7 +252,7 @@ async def update_progress(
     """FR-3.4 — Giám đốc/Trưởng bộ phận điều chỉnh tay tiến độ tổng thể + theo giai đoạn."""
     project.progress = progress
     if stage_progress is not None:
-        project.stage_progress = stage_progress
+        project.stage_progress = normalize_stage_progress(stage_progress)
     session.add(project)
     await session.commit()
     await session.refresh(project)

@@ -7,6 +7,7 @@ import '../../users/application/user_provider.dart';
 import '../../users/data/user_repository.dart';
 import '../application/employee_provider.dart';
 import '../data/employee_repository.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 Future<void> showEmployeeCreateSheet(BuildContext context, {required List<Employee> existing}) {
   return showModalBottomSheet(
@@ -34,15 +35,16 @@ class _EmployeeCreateSheetState extends ConsumerState<_EmployeeCreateSheet> {
   Future<void> _submit() async {
     if (_user == null) return;
     setState(() => _saving = true);
+    final close = PendingDialogClose.of(context);
     try {
       await ref.read(employeeActionsProvider.notifier).create(
             userId: _user!.id,
             phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
             payProfileId: _payProfileId,
           );
-      if (mounted) Navigator.of(context).pop();
+      close.success('Đã tạo nhân viên');
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

@@ -29,7 +29,9 @@ Future<List<Lead>> leadList(Ref ref) {
   return ref.watch(leadRepositoryProvider).list(status: filter.status, source: filter.source, ownerId: filter.ownerId, search: filter.search);
 }
 
-@riverpod
+/// keepAlive: Actions chỉ được `ref.read` từ dialog — autoDispose sẽ dispose
+/// giữa `await` API rồi nổ khi `invalidate` (Ref after disposed).
+@Riverpod(keepAlive: true)
 class LeadActions extends _$LeadActions {
   @override
   void build() {}
@@ -54,13 +56,16 @@ class LeadActions extends _$LeadActions {
           note: note,
           ownerId: ownerId,
         );
+    if (!ref.mounted) return lead;
     ref.invalidate(leadListProvider);
     return lead;
   }
 
-  Future<void> updateStatus(String leadId, LeadStatus status, {String? note}) async {
-    await ref.read(leadRepositoryProvider).updateStatus(leadId, status, note: note);
+  Future<Lead> updateStatus(String leadId, LeadStatus status, {String? note}) async {
+    final lead = await ref.read(leadRepositoryProvider).updateStatus(leadId, status, note: note);
+    if (!ref.mounted) return lead;
     ref.invalidate(leadListProvider);
+    return lead;
   }
 
   Future<void> update(
@@ -83,11 +88,13 @@ class LeadActions extends _$LeadActions {
           source: source,
           ownerId: ownerId,
         );
+    if (!ref.mounted) return;
     ref.invalidate(leadListProvider);
   }
 
   Future<void> delete(String leadId) async {
     await ref.read(leadRepositoryProvider).delete(leadId);
+    if (!ref.mounted) return;
     ref.invalidate(leadListProvider);
   }
 
@@ -95,6 +102,7 @@ class LeadActions extends _$LeadActions {
     final projectId = await ref
         .read(leadRepositoryProvider)
         .convertToProject(leadId, category: category, managerId: managerId);
+    if (!ref.mounted) return projectId;
     ref.invalidate(leadListProvider);
     return projectId;
   }

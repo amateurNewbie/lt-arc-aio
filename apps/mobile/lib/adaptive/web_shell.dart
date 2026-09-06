@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme/app_theme.dart';
+import '../features/auth/application/auth_provider.dart';
 import '../features/dashboard/presentation/dashboard_page.dart';
 import '../features/debts/presentation/debts_page.dart';
 import '../features/contracts/presentation/contracts_page.dart';
@@ -8,17 +10,19 @@ import '../features/departments/presentation/departments_page.dart';
 import '../features/finance/presentation/finance_page.dart';
 import '../features/hr/presentation/hr_page.dart';
 import '../features/leads/presentation/leads_page.dart';
+import '../features/projects/application/project_provider.dart';
 import '../features/projects/presentation/projects_page.dart';
 import '../features/settings/presentation/settings_page.dart';
 import '../features/tasks/presentation/tasks_page.dart';
+import '../features/users/data/user_repository.dart';
 
 /// Sidebar — đúng LT-ARC-Web-UI_1.html (SRS §2.7.1). Nhóm "Điều hành" (Phase 1)
 /// + "Tài chính" (Phase 2); Tổ chức/Hệ thống thêm ở Phase 3+.
-class WebShell extends StatefulWidget {
+class WebShell extends ConsumerStatefulWidget {
   const WebShell({super.key});
 
   @override
-  State<WebShell> createState() => _WebShellState();
+  ConsumerState<WebShell> createState() => _WebShellState();
 }
 
 class _NavItem {
@@ -28,8 +32,11 @@ class _NavItem {
   final Widget page;
 }
 
-class _WebShellState extends State<WebShell> {
+class _WebShellState extends ConsumerState<WebShell> {
   int _index = 0;
+
+  /// Index của mục "Dự án" trong `_allItems`.
+  static const _projectsIndex = 1;
 
   static const _dieuHanh = [
     _NavItem(Icons.dashboard_outlined, 'Tổng quan', DashboardPage()),
@@ -55,8 +62,17 @@ class _WebShellState extends State<WebShell> {
 
   static const _allItems = [..._dieuHanh, ..._taiChinh, ..._toChuc, ..._heThong];
 
+  void _select(int index) {
+    if (index == _projectsIndex) {
+      ref.read(projectPaneProvider.notifier).showList();
+    }
+    setState(() => _index = index);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(authProvider).value;
+
     return Scaffold(
       body: Row(
         children: [
@@ -79,6 +95,21 @@ class _WebShellState extends State<WebShell> {
                 for (var i = 0; i < _toChuc.length; i++) _item(_dieuHanh.length + _taiChinh.length + i, _toChuc[i]),
                 _groupLabel('HỆ THỐNG'),
                 for (var i = 0; i < _heThong.length; i++) _item(_dieuHanh.length + _taiChinh.length + _toChuc.length + i, _heThong[i]),
+                const Spacer(),
+                if (user != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Text(
+                      '${user.displayName}\n${user.role.roleLabel}',
+                      style: TextStyle(color: AppColors.webSidebarText.withValues(alpha: 0.75), fontSize: 11, height: 1.35),
+                    ),
+                  ),
+                _SidebarItem(
+                  icon: Icons.logout,
+                  label: 'Đăng xuất',
+                  selected: false,
+                  onTap: () => ref.read(authProvider.notifier).logout(),
+                ),
               ],
             ),
           ),
@@ -97,7 +128,7 @@ class _WebShellState extends State<WebShell> {
         icon: item.icon,
         label: item.label,
         selected: _index == index,
-        onTap: () => setState(() => _index = index),
+        onTap: () => _select(index),
       );
 }
 

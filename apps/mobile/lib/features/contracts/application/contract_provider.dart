@@ -15,7 +15,9 @@ Future<List<Contract>> contractList(Ref ref, String projectId) => ref.watch(cont
 @riverpod
 Future<List<Contract>> contractListAll(Ref ref) => ref.watch(contractRepositoryProvider).listAll();
 
-@riverpod
+/// keepAlive: Actions chỉ được `ref.read` từ dialog — autoDispose sẽ dispose
+/// giữa `await` API rồi nổ khi `invalidate` (Ref after disposed).
+@Riverpod(keepAlive: true)
 class ContractActions extends _$ContractActions {
   @override
   void build() {}
@@ -27,6 +29,7 @@ class ContractActions extends _$ContractActions {
     required List<MilestoneInput> milestones,
   }) async {
     final contract = await ref.read(contractRepositoryProvider).create(projectId: projectId, type: type, value: value, milestones: milestones);
+    if (!ref.mounted) return contract;
     ref.invalidate(contractListProvider);
     ref.invalidate(contractListAllProvider);
     return contract;
@@ -34,6 +37,7 @@ class ContractActions extends _$ContractActions {
 
   Future<void> collect({required String contractId, required String milestoneId, required int amount, required String fundAccountId, DateTime? date}) async {
     await ref.read(contractRepositoryProvider).collectMilestone(contractId: contractId, milestoneId: milestoneId, amount: amount, fundAccountId: fundAccountId, date: date);
+    if (!ref.mounted) return;
     ref.invalidate(contractListProvider);
     ref.invalidate(contractListAllProvider);
   }

@@ -12,6 +12,7 @@ import '../../users/application/user_provider.dart';
 import '../application/lead_provider.dart';
 import '../data/lead_repository.dart';
 import 'lead_edit_dialog.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 const _leadSources = ['Giới thiệu', 'Website', 'Mạng xã hội', 'Khác'];
 
@@ -195,6 +196,8 @@ class _CreateLeadCardState extends ConsumerState<_CreateLeadCard> {
   String? _source;
   String? _ownerId;
   bool _saving = false;
+  /// Đổi key để DropdownButtonFormField rebuild lại sau khi clear form.
+  int _formEpoch = 0;
 
   @override
   void initState() {
@@ -214,15 +217,29 @@ class _CreateLeadCardState extends ConsumerState<_CreateLeadCard> {
     super.dispose();
   }
 
+  void _clearForm() {
+    _nameController.clear();
+    _phoneController.clear();
+    _emailController.clear();
+    _needController.clear();
+    _budgetController.clear();
+    _noteController.clear();
+    setState(() {
+      _source = null;
+      _ownerId = ref.read(authProvider).value?.id;
+      _formEpoch++;
+    });
+  }
+
   Future<void> _submit() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập họ tên khách hàng')));
+      showAppToast(context, 'Vui lòng nhập họ tên khách hàng');
       return;
     }
     setState(() => _saving = true);
     try {
-      await ref.read(leadActionsProvider.notifier).create(
+      await ref.read(leadRepositoryProvider).create(
             name: name,
             phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
             email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
@@ -232,21 +249,15 @@ class _CreateLeadCardState extends ConsumerState<_CreateLeadCard> {
             note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
             ownerId: _ownerId,
           );
-      if (mounted) {
-        _nameController.clear();
-        _phoneController.clear();
-        _emailController.clear();
-        _needController.clear();
-        _budgetController.clear();
-        _noteController.clear();
-        setState(() {
-          _source = null;
-          _ownerId = ref.read(authProvider).value?.id;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã lưu khách hàng tiềm năng')));
-      }
+      if (!mounted) return;
+      _clearForm();
+      showAppToast(context, 'Đã lưu khách hàng tiềm năng');
+      // Gọi lại API danh sách — lead mới nhất lên đầu (order created_at desc).
+      await ref.refresh(leadListProvider.future);
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
+    } catch (e) {
+      if (mounted) showAppToast(context, 'Không lưu được: $e', error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -298,6 +309,7 @@ class _CreateLeadCardState extends ConsumerState<_CreateLeadCard> {
                 child: _field(
                   'Nguồn',
                   DropdownButtonFormField<String>(
+                    key: ValueKey('lead-source-$_formEpoch'),
                     initialValue: _source,
                     decoration: _webInputDecoration(),
                     hint: const Text('Chọn nguồn', style: TextStyle(fontSize: 13)),
@@ -317,6 +329,7 @@ class _CreateLeadCardState extends ConsumerState<_CreateLeadCard> {
                   'Người phụ trách',
                   usersAsync.when(
                     data: (users) => DropdownButtonFormField<String>(
+                      key: ValueKey('lead-owner-$_formEpoch'),
                       initialValue: _ownerId,
                       decoration: _webInputDecoration(),
                       hint: const Text('Chọn người phụ trách', style: TextStyle(fontSize: 13)),
@@ -554,10 +567,10 @@ class _LeadsTableCard extends ConsumerWidget {
     try {
       await ref.read(leadActionsProvider.notifier).delete(lead.id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xoá khách hàng tiềm năng')));
+        showAppToast(context, 'Đã xoá khách hàng tiềm năng');
       }
     } on ApiException catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (context.mounted) showAppToast(context, e.message, error: true);
     }
   }
 }

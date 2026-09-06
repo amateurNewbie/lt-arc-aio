@@ -90,6 +90,36 @@ async def approve(session: AsyncSession, budget: BudgetEstimate, actor: User) ->
     return budget
 
 
+async def add_line_to_draft(
+    session: AsyncSession,
+    budget: BudgetEstimate,
+    *,
+    cost_category_id: UUID,
+    unit: str,
+    quantity: float,
+    unit_price: int,
+    description: str | None = None,
+) -> BudgetEstimate:
+    """FR-4.1 — thêm 1 dòng vào dự toán đang Nháp (không tạo phiên bản mới)."""
+    if budget.status != BudgetEstimateStatus.DRAFT:
+        raise InvalidBudgetTransitionError("Chỉ thêm dòng vào dự toán ở trạng thái Nháp")
+    amount = round(quantity * unit_price)
+    session.add(
+        BudgetEstimateLine(
+            budget_estimate_id=budget.id,
+            cost_category_id=cost_category_id,
+            description=description,
+            unit=unit,
+            quantity=quantity,
+            unit_price=unit_price,
+            amount=amount,
+        )
+    )
+    await session.commit()
+    await session.refresh(budget)
+    return budget
+
+
 async def get_lines(session: AsyncSession, budget_estimate_id: UUID) -> list[BudgetEstimateLine]:
     result = await session.exec(select(BudgetEstimateLine).where(BudgetEstimateLine.budget_estimate_id == budget_estimate_id))
     return list(result.all())
@@ -100,6 +130,15 @@ async def get_latest_approved(session: AsyncSession, project_id: UUID) -> Budget
     result = await session.exec(
         select(BudgetEstimate)
         .where(BudgetEstimate.project_id == project_id, BudgetEstimate.status == BudgetEstimateStatus.APPROVED)
+        .order_by(BudgetEstimate.version.desc())
+    )
+    return result.first()
+
+
+async def get_latest_draft(session: AsyncSession, project_id: UUID) -> BudgetEstimate | None:
+    result = await session.exec(
+        select(BudgetEstimate)
+        .where(BudgetEstimate.project_id == project_id, BudgetEstimate.status == BudgetEstimateStatus.DRAFT)
         .order_by(BudgetEstimate.version.desc())
     )
     return result.first()

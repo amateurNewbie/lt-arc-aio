@@ -10,12 +10,20 @@ const _roleLabels = {
   'EMPLOYEE': 'Nhân viên',
 };
 
+const assignableRoles = ['ADMIN', 'DIRECTOR', 'DEPARTMENT_HEAD', 'EMPLOYEE'];
+
 extension RoleLabel on String {
   String get roleLabel => _roleLabels[this] ?? this;
 }
 
 class UserSummary {
-  const UserSummary({required this.id, required this.email, required this.fullName, required this.role, required this.departmentId});
+  const UserSummary({
+    required this.id,
+    required this.email,
+    required this.fullName,
+    required this.role,
+    required this.departmentId,
+  });
 
   final String id;
   final String email;
@@ -35,7 +43,7 @@ class UserSummary {
       );
 }
 
-/// Gọi `/api/users` — dùng cho Phân quyền bổ sung (FR-1.7) và gán hồ sơ nhân sự (FR-14).
+/// Gọi `/api/users` — list / tạo tài khoản (FR-1.3) + chọn user cấp grant (FR-1.7).
 class UserRepository {
   UserRepository(this._apiClient);
 
@@ -45,6 +53,27 @@ class UserRepository {
     try {
       final response = await _apiClient.dio.get('/api/users');
       return (response.data as List).map((e) => UserSummary.fromJson(e as Map<String, dynamic>)).toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<UserSummary> create({
+    required String email,
+    required String password,
+    required String role,
+    String? fullName,
+    String? departmentId,
+  }) async {
+    try {
+      final response = await _apiClient.dio.post('/api/users', data: {
+        'email': email,
+        'password': password,
+        'role': role,
+        if (fullName != null && fullName.trim().isNotEmpty) 'full_name': fullName.trim(),
+        'department_id': ?departmentId,
+      });
+      return UserSummary.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

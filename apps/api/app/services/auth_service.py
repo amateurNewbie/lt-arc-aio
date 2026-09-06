@@ -69,7 +69,7 @@ async def create_user(
     full_name: str | None = None,
     department_id=None,
 ) -> User:
-    """FR-1.3 — chỉ ADMIN được tạo tài khoản mới (kiểm tra ở router qua require_roles)."""
+    """FR-1.3 — chỉ ADMIN/Giám đốc tạo tài khoản (kiểm tra ở router qua require_roles)."""
     user = User(
         email=email,
         password_hash=hash_password(password),

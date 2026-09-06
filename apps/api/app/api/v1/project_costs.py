@@ -41,9 +41,12 @@ async def create_cost_endpoint(
             on=payload.date,
             note=payload.note,
             work_item_id=payload.work_item_id,
+            fund_account_id=payload.fund_account_id,
             confirm_duplicate=payload.confirm_duplicate,
         )
     except InvalidCostCategoryError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    except ValueError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
     except DuplicateCostWarning as exc:
         return DuplicateCostWarningResponse(

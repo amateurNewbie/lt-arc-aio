@@ -11,18 +11,22 @@ PayProfileRepository payProfileRepository(Ref ref) => PayProfileRepository(ref.w
 @riverpod
 Future<List<PayProfile>> payProfileList(Ref ref) => ref.watch(payProfileRepositoryProvider).list();
 
-@riverpod
+/// keepAlive: Actions chỉ được `ref.read` từ dialog — autoDispose sẽ dispose
+/// giữa `await` API rồi nổ khi `invalidate` (Ref after disposed).
+@Riverpod(keepAlive: true)
 class PayProfileActions extends _$PayProfileActions {
   @override
   void build() {}
 
   Future<void> create({required String roleTitle, required int dailyRate, required List<Allowance> allowances}) async {
     await ref.read(payProfileRepositoryProvider).create(roleTitle: roleTitle, dailyRate: dailyRate, allowances: allowances);
+    if (!ref.mounted) return;
     ref.invalidate(payProfileListProvider);
   }
 
   Future<void> update(String id, {int? dailyRate, List<Allowance>? allowances, bool? active}) async {
     await ref.read(payProfileRepositoryProvider).update(id, dailyRate: dailyRate, allowances: allowances, active: active);
+    if (!ref.mounted) return;
     ref.invalidate(payProfileListProvider);
   }
 }

@@ -11,7 +11,9 @@ WorkItemRepository workItemRepository(Ref ref) => WorkItemRepository(ref.watch(a
 @riverpod
 Future<List<WorkItem>> workItemList(Ref ref, String projectId) => ref.watch(workItemRepositoryProvider).list(projectId);
 
-@riverpod
+/// keepAlive: Actions chỉ được `ref.read` từ dialog — autoDispose sẽ dispose
+/// giữa `await` API rồi nổ khi `invalidate` (Ref after disposed).
+@Riverpod(keepAlive: true)
 class WorkItemActions extends _$WorkItemActions {
   @override
   void build() {}
@@ -24,12 +26,21 @@ class WorkItemActions extends _$WorkItemActions {
     required double quantity,
     required int unitPrice,
   }) async {
-    await ref.read(workItemRepositoryProvider).create(projectId: projectId, departmentId: departmentId, name: name, unit: unit, quantity: quantity, unitPrice: unitPrice);
+    await ref.read(workItemRepositoryProvider).create(
+          projectId: projectId,
+          departmentId: departmentId,
+          name: name,
+          unit: unit,
+          quantity: quantity,
+          unitPrice: unitPrice,
+        );
+    if (!ref.mounted) return;
     ref.invalidate(workItemListProvider);
   }
 
   Future<void> updateProgress(String projectId, String workItemId, int progress) async {
     await ref.read(workItemRepositoryProvider).updateProgress(projectId, workItemId, progress);
+    if (!ref.mounted) return;
     ref.invalidate(workItemListProvider);
   }
 }

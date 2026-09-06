@@ -12,7 +12,9 @@ TaskRepository taskRepository(Ref ref) => TaskRepository(ref.watch(apiClientProv
 Future<List<Task>> taskList(Ref ref, {String? projectId, String? departmentId, String? assigneeId}) =>
     ref.watch(taskRepositoryProvider).list(projectId: projectId, departmentId: departmentId, assigneeId: assigneeId);
 
-@riverpod
+/// keepAlive: Actions chỉ được `ref.read` từ dialog — autoDispose sẽ dispose
+/// giữa `await` API rồi nổ khi `invalidate` (Ref after disposed).
+@Riverpod(keepAlive: true)
 class TaskActions extends _$TaskActions {
   @override
   void build() {}
@@ -21,18 +23,28 @@ class TaskActions extends _$TaskActions {
     required String title,
     required String projectId,
     required String departmentId,
+    String? parentTaskId,
+    String? assigneeId,
+    DateTime? dueDate,
+    TaskPriority priority = TaskPriority.medium,
   }) async {
     final task = await ref.read(taskRepositoryProvider).create(
           title: title,
           projectId: projectId,
           departmentId: departmentId,
+          parentTaskId: parentTaskId,
+          assigneeId: assigneeId,
+          dueDate: dueDate,
+          priority: priority,
         );
+    if (!ref.mounted) return task;
     ref.invalidate(taskListProvider);
     return task;
   }
 
   Future<Task> updateProgress(String taskId, int progress) async {
     final task = await ref.read(taskRepositoryProvider).updateProgress(taskId, progress);
+    if (!ref.mounted) return task;
     ref.invalidate(taskListProvider);
     return task;
   }

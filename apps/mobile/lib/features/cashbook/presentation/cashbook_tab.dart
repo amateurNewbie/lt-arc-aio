@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../application/cashbook_provider.dart';
-import 'cost_form_sheet.dart';
+import '../data/cashbook_repository.dart';
+import 'expense_tab.dart';
 
-/// FR-6.4 — sổ Thu & Chi hợp nhất của dự án.
+/// FR-6.4 — sổ Thu & Chi hợp nhất (dùng ở ProjectDetailPage cũ).
 class CashbookTab extends ConsumerWidget {
   const CashbookTab({super.key, required this.projectId});
 
@@ -13,57 +14,66 @@ class CashbookTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final entriesAsync = ref.watch(cashbookEntriesProvider(projectId));
+    final costsAsync = ref.watch(projectCostListProvider(projectId));
+    final paymentsAsync = ref.watch(projectPaymentListProvider(projectId));
     final currency = NumberFormat.decimalPattern('vi');
+
+    if (costsAsync.isLoading || paymentsAsync.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (costsAsync.hasError) return Center(child: Text('Lỗi: ${costsAsync.error}'));
+    if (paymentsAsync.hasError) return Center(child: Text('Lỗi: ${paymentsAsync.error}'));
+
+    final costs = costsAsync.asData?.value ?? const <ProjectCost>[];
+    final payments = paymentsAsync.asData?.value ?? const <Payment>[];
+    final entries = [
+      ...costs.map((c) => (isIn: false, amount: c.amount, date: c.date, note: c.note)),
+      ...payments.map((p) => (isIn: true, amount: p.amount, date: p.date, note: null as String?)),
+    ]..sort((a, b) => b.date.compareTo(a.date));
+
+    final totalIn = payments.fold(0, (s, e) => s + e.amount);
+    final totalOut = costs.fold(0, (s, e) => s + e.amount);
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-        onPressed: () => showCostFormSheet(context, projectId),
+        onPressed: () => showExpenseDialog(context, projectId),
         tooltip: 'Ghi nhận khoản chi',
         child: const Icon(Icons.remove),
       ),
-      body: entriesAsync.when(
-        data: (entries) {
-          if (entries.isEmpty) return const Center(child: Text('Chưa có khoản thu/chi nào'));
-          final totalIn = entries.where((e) => e.isInflow).fold(0, (s, e) => s + e.amount);
-          final totalOut = entries.where((e) => !e.isInflow).fold(0, (s, e) => s + e.amount);
-
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    Expanded(child: _summaryCard('Tổng thu', totalIn, Colors.green, currency)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _summaryCard('Tổng chi', totalOut, Colors.red, currency)),
-                  ],
+      body: entries.isEmpty
+          ? const Center(child: Text('Chưa có khoản thu/chi nào'))
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Expanded(child: _summaryCard('Tổng thu', totalIn, Colors.green, currency)),
+                      const SizedBox(width: 8),
+                      Expanded(child: _summaryCard('Tổng chi', totalOut, Colors.red, currency)),
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: ListView.separated(
-                  itemCount: entries.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final entry = entries[index];
-                    return ListTile(
-                      leading: Icon(entry.isInflow ? Icons.arrow_downward : Icons.arrow_upward, color: entry.isInflow ? Colors.green : Colors.red),
-                      title: Text(entry.note ?? (entry.isInflow ? 'Thu theo đợt hợp đồng' : 'Khoản chi')),
-                      subtitle: Text(DateFormat('dd/MM/yyyy').format(entry.date)),
-                      trailing: Text(
-                        '${entry.isInflow ? '+' : '-'}${currency.format(entry.amount)} ₫',
-                        style: TextStyle(fontWeight: FontWeight.w600, color: entry.isInflow ? Colors.green.shade700 : Colors.red.shade700),
-                      ),
-                    );
-                  },
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: entries.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final entry = entries[index];
+                      return ListTile(
+                        leading: Icon(entry.isIn ? Icons.arrow_downward : Icons.arrow_upward, color: entry.isIn ? Colors.green : Colors.red),
+                        title: Text(entry.note ?? (entry.isIn ? 'Thu theo đợt hợp đồng' : 'Khoản chi')),
+                        subtitle: Text(DateFormat('dd/MM/yyyy').format(entry.date)),
+                        trailing: Text(
+                          '${entry.isIn ? '+' : '-'}${currency.format(entry.amount)} ₫',
+                          style: TextStyle(fontWeight: FontWeight.w600, color: entry.isIn ? Colors.green.shade700 : Colors.red.shade700),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Lỗi tải dữ liệu: $e')),
-      ),
+              ],
+            ),
     );
   }
 

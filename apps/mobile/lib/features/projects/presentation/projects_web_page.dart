@@ -8,8 +8,6 @@ import '../../reports/application/reports_provider.dart';
 import '../../reports/data/reports_repository.dart';
 import '../application/project_provider.dart';
 import '../data/project_repository.dart';
-import 'project_detail_page.dart';
-import 'project_form_dialog.dart';
 
 WebBadgeVariant _categoryVariant(ProjectCategory c) => switch (c) {
       ProjectCategory.construction => WebBadgeVariant.warning,
@@ -57,7 +55,7 @@ class ProjectsWebPage extends ConsumerWidget {
                     ),
                   ),
                   FilledButton.icon(
-                    onPressed: () => showProjectFormDialog(context),
+                    onPressed: () => ref.read(projectPaneProvider.notifier).showCreate(),
                     style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('Tạo dự án'),
@@ -123,14 +121,14 @@ class ProjectsWebPage extends ConsumerWidget {
   }
 }
 
-class _ProjectCard extends StatelessWidget {
+class _ProjectCard extends ConsumerWidget {
   const _ProjectCard({required this.project, required this.pnl});
 
   final Project project;
   final ProjectPnl? pnl;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final currency = NumberFormat.decimalPattern('vi');
     final profit = pnl?.profit;
 
@@ -138,7 +136,7 @@ class _ProjectCard extends StatelessWidget {
       decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProjectDetailPage(projectId: project.id))),
+        onTap: () => ref.read(projectPaneProvider.notifier).showDetail(project.id),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(

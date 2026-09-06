@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../users/application/user_provider.dart';
 import '../application/lead_provider.dart';
 import '../data/lead_repository.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 Future<void> showLeadEditDialog(BuildContext context, Lead lead) {
   return showDialog(context: context, builder: (_) => _LeadEditDialog(lead: lead));
@@ -28,7 +29,10 @@ class _LeadEditDialogState extends ConsumerState<_LeadEditDialog> {
   late final _budgetController = TextEditingController(text: widget.lead.budgetEstimate?.toString() ?? '');
   late String? _source = widget.lead.source;
   late String? _ownerId = widget.lead.ownerId;
+  /// Trạng thái hiển thị trên popup edit — cập nhật khi chuyển status, không đóng dialog.
+  late LeadStatus _status = widget.lead.status;
   bool _savingInfo = false;
+  bool _updatingStatus = false;
 
   @override
   void dispose() {
@@ -43,12 +47,14 @@ class _LeadEditDialogState extends ConsumerState<_LeadEditDialog> {
   Future<void> _saveInfo() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập họ tên khách hàng')));
+      showAppToast(context, 'Vui lòng nhập họ tên khách hàng');
       return;
     }
     setState(() => _savingInfo = true);
+    // Capture navigator trước await — invalidate list sau update có thể làm context lệch.
+    final close = PendingDialogClose.of(context);
     try {
-      await ref.read(leadActionsProvider.notifier).update(
+      await ref.read(leadRepositoryProvider).update(
             widget.lead.id,
             name: name,
             phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
@@ -58,14 +64,55 @@ class _LeadEditDialogState extends ConsumerState<_LeadEditDialog> {
             source: _source,
             ownerId: _ownerId,
           );
+      close.success('Đã cập nhật thông tin khách hàng tiềm năng');
+      ref.invalidate(leadListProvider);
+    } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã cập nhật thông tin khách hàng tiềm năng')));
-        Navigator.of(context).pop();
+        showAppToast(context, e.message, error: true);
+        setState(() => _savingInfo = false);
+      }
+    } catch (e) {
+      if (mounted) {
+        showAppToast(context, 'Không lưu được: $e', error: true);
+        setState(() => _savingInfo = false);
+      }
+    }
+  }
+
+  Future<void> _changeStatus(LeadStatus target) async {
+    final note = await _showStatusNoteDialog(context, targetStatus: target);
+    if (note == null || !mounted) return;
+
+    final previous = _status;
+    // Cập nhật stepper ngay — không chờ API / invalidate list.
+    setState(() {
+      _status = target;
+      _updatingStatus = true;
+    });
+
+    try {
+      await ref.read(leadRepositoryProvider).updateStatus(
+            widget.lead.id,
+            target,
+            note: note.isEmpty ? null : note,
+          );
+      // Refresh list sau khi UI dialog đã cập nhật.
+      ref.invalidate(leadListProvider);
+      if (mounted) {
+        showAppToast(context, 'Đã cập nhật trạng thái');
       }
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) {
+        setState(() => _status = previous);
+        showAppToast(context, e.message, error: true);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _status = previous);
+        showAppToast(context, 'Không lưu được: $e', error: true);
+      }
     } finally {
-      if (mounted) setState(() => _savingInfo = false);
+      if (mounted) setState(() => _updatingStatus = false);
     }
   }
 
@@ -117,7 +164,11 @@ class _LeadEditDialogState extends ConsumerState<_LeadEditDialog> {
               const SizedBox(height: 8),
               const Text('Trạng thái', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
               const SizedBox(height: 10),
-              _LeadStatusStepper(lead: widget.lead),
+              _LeadStatusStepper(
+                status: _status,
+                updating: _updatingStatus,
+                onRequestChange: _changeStatus,
+              ),
             ],
           ),
         ),
@@ -137,18 +188,24 @@ class _LeadEditDialogState extends ConsumerState<_LeadEditDialog> {
 
 /// Hiển thị chuỗi bước tuần tự Mới → Đang tư vấn → Đã báo giá, rồi tới nhánh
 /// rẽ Đã chốt/Từ chối — chỉ bước kế tiếp hợp lệ mới bấm chuyển được (FR-2.2).
-class _LeadStatusStepper extends ConsumerWidget {
-  const _LeadStatusStepper({required this.lead});
+class _LeadStatusStepper extends StatelessWidget {
+  const _LeadStatusStepper({
+    required this.status,
+    required this.updating,
+    required this.onRequestChange,
+  });
 
-  final Lead lead;
+  final LeadStatus status;
+  final bool updating;
+  final ValueChanged<LeadStatus> onRequestChange;
 
   static const _sequence = [LeadStatus.newLead, LeadStatus.consulting, LeadStatus.quoted];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final currentIndex = _sequence.indexOf(lead.status);
+  Widget build(BuildContext context) {
+    final currentIndex = _sequence.indexOf(status);
     final onLinearStep = currentIndex != -1;
-    final nextStatuses = nextValidLeadStatuses(lead.status);
+    final nextStatuses = nextValidLeadStatuses(status);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,27 +235,32 @@ class _LeadStatusStepper extends ConsumerWidget {
             const SizedBox(width: 8),
             _StepChip(
               label: LeadStatus.converted.label,
-              state: lead.status == LeadStatus.converted
+              state: status == LeadStatus.converted
                   ? _StepState.current
-                  : (lead.status == LeadStatus.rejected ? _StepState.disabled : _StepState.pending),
+                  : (status == LeadStatus.rejected ? _StepState.disabled : _StepState.pending),
             ),
             const SizedBox(width: 8),
             _StepChip(
               label: LeadStatus.rejected.label,
-              state: lead.status == LeadStatus.rejected
+              state: status == LeadStatus.rejected
                   ? _StepState.current
-                  : (lead.status == LeadStatus.converted ? _StepState.disabled : _StepState.pending),
+                  : (status == LeadStatus.converted ? _StepState.disabled : _StepState.pending),
             ),
           ],
         ),
         if (nextStatuses.isNotEmpty) ...[
           const SizedBox(height: 16),
+          if (updating)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
           Wrap(
             spacing: 8,
             children: [
               for (final target in nextStatuses)
                 OutlinedButton(
-                  onPressed: () => _showStatusNoteDialog(context, ref, lead: lead, targetStatus: target),
+                  onPressed: updating ? null : () => onRequestChange(target),
                   child: Text('Chuyển sang: ${target.label}'),
                 ),
             ],
@@ -235,7 +297,8 @@ class _StepChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (state == _StepState.done) const Padding(padding: EdgeInsets.only(right: 4), child: Icon(Icons.check, size: 12, color: AppColors.webSuccess)),
+          if (state == _StepState.done)
+            const Padding(padding: EdgeInsets.only(right: 4), child: Icon(Icons.check, size: 12, color: AppColors.webSuccess)),
           Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg)),
         ],
       ),
@@ -252,57 +315,37 @@ class _StepConnector extends StatelessWidget {
   }
 }
 
-Future<void> _showStatusNoteDialog(
-  BuildContext context,
-  WidgetRef ref, {
-  required Lead lead,
+/// Trả về nội dung ghi chú nếu xác nhận; `null` nếu huỷ.
+/// (Chuỗi rỗng = xác nhận không ghi chú — khác `null`.)
+Future<String?> _showStatusNoteDialog(
+  BuildContext context, {
   required LeadStatus targetStatus,
 }) {
   final noteController = TextEditingController();
-  bool saving = false;
 
-  return showDialog(
+  return showDialog<String>(
     context: context,
-    builder: (dialogContext) => StatefulBuilder(
-      builder: (dialogContext, setState) => AlertDialog(
-        title: Text('Chuyển trạng thái sang: ${targetStatus.label}'),
-        content: SizedBox(
-          width: 380,
-          child: TextField(
-            controller: noteController,
-            maxLines: 4,
-            decoration: const InputDecoration(labelText: 'Ghi chú', hintText: 'Nhập nội dung ghi chú cho lần chuyển trạng thái này...', alignLabelWithHint: true),
+    builder: (dialogContext) => AlertDialog(
+      title: Text('Chuyển trạng thái sang: ${targetStatus.label}'),
+      content: SizedBox(
+        width: 380,
+        child: TextField(
+          controller: noteController,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            labelText: 'Ghi chú',
+            hintText: 'Nhập nội dung ghi chú cho lần chuyển trạng thái này...',
+            alignLabelWithHint: true,
           ),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Huỷ')),
-          FilledButton(
-            onPressed: saving
-                ? null
-                : () async {
-                    setState(() => saving = true);
-                    try {
-                      await ref.read(leadActionsProvider.notifier).updateStatus(
-                            lead.id,
-                            targetStatus,
-                            note: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
-                          );
-                      // Đóng cả popup ghi chú lẫn popup sửa khách hàng cùng lúc,
-                      // quay thẳng về danh sách — dùng `context` gốc (còn mounted
-                      // xuyên suốt, không bị ảnh hưởng bởi việc dialog note đóng).
-                      if (context.mounted) {
-                        Navigator.of(context).popUntil((route) => route.isFirst);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã cập nhật trạng thái')));
-                      }
-                    } on ApiException catch (e) {
-                      if (dialogContext.mounted) ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(e.message)));
-                      setState(() => saving = false);
-                    }
-                  },
-            child: saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Xác nhận'),
-          ),
-        ],
       ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Huỷ')),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(noteController.text.trim()),
+          child: const Text('Xác nhận'),
+        ),
+      ],
     ),
-  );
+  ).whenComplete(noteController.dispose);
 }

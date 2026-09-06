@@ -87,15 +87,22 @@ class TasksWebPage extends ConsumerWidget {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  SizedBox(
-                    width: 220,
+                  Expanded(
                     child: projectsAsync.when(
                       data: (projects) => DropdownButtonFormField<String?>(
                         initialValue: filter.projectId,
+                        isExpanded: true,
                         decoration: _webSelectDecoration(),
                         items: [
-                          const DropdownMenuItem(value: null, child: Text('Dự án: Tất cả', style: TextStyle(fontSize: 13))),
-                          for (final p in projects) DropdownMenuItem(value: p.id, child: Text(p.name, style: const TextStyle(fontSize: 13))),
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Dự án: Tất cả', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
+                          ),
+                          for (final p in projects)
+                            DropdownMenuItem(
+                              value: p.id,
+                              child: Text(p.name, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
+                            ),
                         ],
                         onChanged: (v) => ref.read(taskFilterProvider.notifier).setProject(v),
                       ),
@@ -104,15 +111,22 @@ class TasksWebPage extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  SizedBox(
-                    width: 180,
+                  Expanded(
                     child: departmentsAsync.when(
                       data: (departments) => DropdownButtonFormField<String?>(
                         initialValue: filter.departmentId,
+                        isExpanded: true,
                         decoration: _webSelectDecoration(),
                         items: [
-                          const DropdownMenuItem(value: null, child: Text('Bộ phận: Tất cả', style: TextStyle(fontSize: 13))),
-                          for (final d in departments) DropdownMenuItem(value: d.id, child: Text(d.name, style: const TextStyle(fontSize: 13))),
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Bộ phận: Tất cả', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
+                          ),
+                          for (final d in departments)
+                            DropdownMenuItem(
+                              value: d.id,
+                              child: Text(d.name, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
+                            ),
                         ],
                         onChanged: (v) => ref.read(taskFilterProvider.notifier).setDepartment(v),
                       ),
@@ -121,15 +135,22 @@ class TasksWebPage extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  SizedBox(
-                    width: 220,
+                  Expanded(
                     child: usersAsync.when(
                       data: (users) => DropdownButtonFormField<String?>(
                         initialValue: filter.assigneeId,
+                        isExpanded: true,
                         decoration: _webSelectDecoration(),
                         items: [
-                          const DropdownMenuItem(value: null, child: Text('Người phụ trách: Tất cả', style: TextStyle(fontSize: 13))),
-                          for (final u in users) DropdownMenuItem(value: u.id, child: Text(u.displayName, style: const TextStyle(fontSize: 13))),
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Người phụ trách: Tất cả', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
+                          ),
+                          for (final u in users)
+                            DropdownMenuItem(
+                              value: u.id,
+                              child: Text(u.displayName, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
+                            ),
                         ],
                         onChanged: (v) => ref.read(taskFilterProvider.notifier).setAssignee(v),
                       ),

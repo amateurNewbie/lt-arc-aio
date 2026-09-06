@@ -5,6 +5,7 @@ import '../../../core/api/api_exception.dart';
 import '../../pay_profiles/application/pay_profile_provider.dart';
 import '../application/employee_provider.dart';
 import '../data/employee_repository.dart';
+import '../../../shared/widgets/app_toast.dart';
 
 Future<void> showEmployeePaySheet(BuildContext context, Employee employee) {
   return showModalBottomSheet(
@@ -30,6 +31,7 @@ class _EmployeePaySheetState extends ConsumerState<_EmployeePaySheet> {
 
   Future<void> _submit() async {
     setState(() => _saving = true);
+    final close = PendingDialogClose.of(context);
     try {
       final overrideText = _overrideController.text.trim();
       await ref.read(employeeActionsProvider.notifier).updatePay(
@@ -37,9 +39,9 @@ class _EmployeePaySheetState extends ConsumerState<_EmployeePaySheet> {
             payProfileId: _payProfileId,
             dailyRateOverride: overrideText.isEmpty ? null : int.tryParse(overrideText),
           );
-      if (mounted) Navigator.of(context).pop();
+      close.success('Đã gán hồ sơ lương');
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) showAppToast(context, e.message, error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

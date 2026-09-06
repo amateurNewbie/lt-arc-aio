@@ -20,6 +20,7 @@
     flutter-riverpod/                                 # Riverpod provider conventions (deep dive)
     sqlmodel-fastapi/                                 # SQLModel + Alembic conventions (deep dive)
     code-quality-review/                              # 5-axis review, ARC AIO overlay
+    # + 37 skills from evanca/flutter-ai-rules (mirrored under .agents/skills/)
 ```
 
 ## Rules
@@ -59,6 +60,9 @@
 | `flutter-riverpod` | Choosing a provider type, wiring `ConsumerWidget`, testing providers |
 | `sqlmodel-fastapi` | Defining a table/request/response model, relationships, Alembic migration |
 | `code-quality-review` | Reviewing a diff/PR on Security/Logic/Performance/Maintainability/Style |
+| `flutter-best-practices`, `effective-dart`, `riverpod`, `testing`, … | Official Flutter/Dart/Firebase guidance from [evanca/flutter-ai-rules](https://github.com/evanca/flutter-ai-rules) — agent auto-loads by task |
+
+Also mirrored at `.agents/skills/` + tracked by root `skills-lock.json` (reinstall: `npx skills experimental_install`).
 
 ### Skill format
 

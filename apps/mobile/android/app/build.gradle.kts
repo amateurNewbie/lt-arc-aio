@@ -17,7 +17,10 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.ltarc.mobile"
-    compileSdk = flutter.compileSdkVersion
+    // Chốt cứng thay vì flutter.compileSdkVersion: file_picker (qua
+    // flutter_plugin_android_lifecycle) đòi compileSdk >= 36, cao hơn mặc định
+    // của bản Flutter đang cài trên CI runner.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

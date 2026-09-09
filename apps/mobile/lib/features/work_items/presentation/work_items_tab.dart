@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/web_badge.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../departments/application/department_provider.dart';
 import '../../departments/data/department_repository.dart';
 import '../application/work_item_provider.dart';
@@ -25,6 +26,7 @@ class WorkItemsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final itemsAsync = ref.watch(workItemListProvider(projectId));
     final departmentsAsync = ref.watch(departmentListProvider);
+    final canManage = ref.watch(authProvider).value?.role != 'EMPLOYEE';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -45,12 +47,13 @@ class WorkItemsTab extends ConsumerWidget {
                 ],
               ),
             ),
-            FilledButton.icon(
-              onPressed: () => showWorkItemDialog(context, projectId),
-              style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Thêm hạng mục'),
-            ),
+            if (canManage)
+              FilledButton.icon(
+                onPressed: () => showWorkItemDialog(context, projectId),
+                style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Thêm hạng mục'),
+              ),
           ],
         ),
         const SizedBox(height: 12),

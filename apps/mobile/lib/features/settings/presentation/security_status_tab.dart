@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../auth/application/auth_provider.dart';
 import '../application/settings_provider.dart';
 
 /// FR-20.4 — minh bạch hoá các biện pháp bảo mật đang áp dụng.
@@ -9,6 +10,16 @@ class SecurityStatusTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final role = ref.watch(authProvider).value?.role;
+    if (role != 'ADMIN' && role != 'DIRECTOR') {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text('Chỉ Quản trị và Giám đốc được xem trạng thái bảo mật.'),
+        ),
+      );
+    }
+
     final statusAsync = ref.watch(securityStatusProvider);
 
     return statusAsync.when(

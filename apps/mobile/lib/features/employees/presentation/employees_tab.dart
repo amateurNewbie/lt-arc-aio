@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/web_badge.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../departments/application/department_provider.dart';
 import '../../departments/data/department_repository.dart';
 import '../../users/application/user_provider.dart';
@@ -23,12 +24,16 @@ class EmployeesTab extends ConsumerWidget {
     final employeesAsync = ref.watch(employeeListProvider);
     final usersAsync = ref.watch(userListProvider);
     final departmentsAsync = ref.watch(departmentListProvider);
+    final role = ref.watch(authProvider).value?.role;
+    final canManage = role == 'ADMIN' || role == 'DIRECTOR';
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => showEmployeeCreateSheet(context, existing: employeesAsync.value ?? []),
-        child: const Icon(Icons.person_add_alt),
-      ),
+      floatingActionButton: canManage
+          ? FloatingActionButton(
+              onPressed: () => showEmployeeCreateSheet(context, existing: employeesAsync.value ?? []),
+              child: const Icon(Icons.person_add_alt),
+            )
+          : null,
       body: employeesAsync.when(
         data: (employees) {
           if (employees.isEmpty) return const Center(child: Text('Chưa có hồ sơ nhân sự nào'));
@@ -76,7 +81,7 @@ class EmployeesTab extends ConsumerWidget {
                       rows: [
                         for (final e in employees)
                           DataRow(
-                            onSelectChanged: (_) => showEmployeePaySheet(context, e),
+                            onSelectChanged: canManage ? (_) => showEmployeePaySheet(context, e) : null,
                             cells: [
                               DataCell(Text(usersById[e.userId]?.displayName ?? '—', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
                               DataCell(Text(usersById[e.userId]?.email ?? '—', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg))),

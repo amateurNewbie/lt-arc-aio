@@ -22,6 +22,9 @@ class MeResponse(SQLModel):
     full_name: str | None
     role: Role
     department_id: UUID | None
+    effective_permissions: dict[str, bool]
+    """FR-1.7 — quyền hiệu lực (mặc định vai trò ∪ grant còn hạn) của chính user
+    này cho 6 nhóm quyền, để FE ẩn/hiện nút bấm đúng — xem `has_permission()`."""
 
 
 class PreviewRoleRequest(SQLModel):

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../funds/application/fund_provider.dart';
 import '../../funds/data/fund_repository.dart';
 import '../../funds/presentation/fund_form_sheet.dart';
@@ -16,6 +17,7 @@ class FundsSettingsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final fundsAsync = ref.watch(fundListProvider);
     final currency = NumberFormat.decimalPattern('vi');
+    final canManage = ref.watch(authProvider).value?.hasPermission('FUNDS') ?? false;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -27,12 +29,13 @@ class FundsSettingsTab extends ConsumerWidget {
               const Expanded(
                 child: Text('Quỹ & tiền mặt', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
               ),
-              FilledButton.icon(
-                onPressed: () => showFundFormSheet(context),
-                style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Thêm quỹ'),
-              ),
+              if (canManage)
+                FilledButton.icon(
+                  onPressed: () => showFundFormSheet(context),
+                  style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Thêm quỹ'),
+                ),
             ],
           ),
         ),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/web_badge.dart';
+import '../../auth/application/auth_provider.dart';
 import '../application/cost_category_provider.dart';
 import '../data/cost_category_repository.dart';
 import '../../../shared/widgets/app_toast.dart';
@@ -63,12 +64,15 @@ class _CostCategoriesTabState extends ConsumerState<CostCategoriesTab> {
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(costCategoryListProvider());
+    final role = ref.watch(authProvider).value?.role;
+    final canManage = role == 'ADMIN' || role == 'DIRECTOR';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (canManage) ...[
           const Text('Thêm danh mục hạng mục chi phí', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           Row(
@@ -106,6 +110,7 @@ class _CostCategoriesTabState extends ConsumerState<CostCategoriesTab> {
           ),
           const SizedBox(height: 20),
           const Divider(),
+          ],
           const SizedBox(height: 12),
           categoriesAsync.when(
             data: (categories) {
@@ -154,16 +159,18 @@ class _CostCategoriesTabState extends ConsumerState<CostCategoriesTab> {
                               ),
                             ),
                             DataCell(
-                              TextButton(
-                                style: TextButton.styleFrom(
-                                  visualDensity: VisualDensity.compact,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                  minimumSize: Size.zero,
-                                ),
-                                onPressed: () => ref.read(costCategoryActionsProvider.notifier).setActive(c.id, !c.active),
-                                child: Text(c.active ? 'Ngừng dùng' : 'Dùng lại', style: const TextStyle(fontSize: 12)),
-                              ),
+                              canManage
+                                  ? TextButton(
+                                      style: TextButton.styleFrom(
+                                        visualDensity: VisualDensity.compact,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                                        minimumSize: Size.zero,
+                                      ),
+                                      onPressed: () => ref.read(costCategoryActionsProvider.notifier).setActive(c.id, !c.active),
+                                      child: Text(c.active ? 'Ngừng dùng' : 'Dùng lại', style: const TextStyle(fontSize: 12)),
+                                    )
+                                  : const SizedBox.shrink(),
                             ),
                           ],
                         ),

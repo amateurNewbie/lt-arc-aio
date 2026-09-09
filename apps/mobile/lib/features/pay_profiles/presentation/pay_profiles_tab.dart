@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../auth/application/auth_provider.dart';
 import '../application/pay_profile_provider.dart';
 import 'pay_profile_form_sheet.dart';
 
@@ -13,9 +14,11 @@ class PayProfilesTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profilesAsync = ref.watch(payProfileListProvider);
     final currency = NumberFormat.decimalPattern('vi');
+    final role = ref.watch(authProvider).value?.role;
+    final canManage = role == 'ADMIN' || role == 'DIRECTOR';
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton(onPressed: () => showPayProfileFormSheet(context), child: const Icon(Icons.add)),
+      floatingActionButton: canManage ? FloatingActionButton(onPressed: () => showPayProfileFormSheet(context), child: const Icon(Icons.add)) : null,
       body: profilesAsync.when(
         data: (profiles) {
           if (profiles.isEmpty) return const Center(child: Text('Chưa có chức danh lương nào'));
@@ -30,8 +33,8 @@ class PayProfilesTab extends ConsumerWidget {
                   title: Text(profile.roleTitle, style: TextStyle(color: profile.active ? null : Theme.of(context).disabledColor)),
                   subtitle: Text('${profile.allowances.length} phụ cấp${profile.active ? '' : ' · Đã ẩn'}'),
                   trailing: Text('${currency.format(profile.dailyRate)} ₫/ngày', style: const TextStyle(fontWeight: FontWeight.w600)),
-                  onTap: () => showPayProfileFormSheet(context, profile: profile),
-                  onLongPress: () => ref.read(payProfileActionsProvider.notifier).update(profile.id, active: !profile.active),
+                  onTap: canManage ? () => showPayProfileFormSheet(context, profile: profile) : null,
+                  onLongPress: canManage ? () => ref.read(payProfileActionsProvider.notifier).update(profile.id, active: !profile.active) : null,
                 ),
               );
             },

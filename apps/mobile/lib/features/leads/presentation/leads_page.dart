@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../auth/application/auth_provider.dart';
 import '../application/lead_provider.dart';
 import '../data/lead_repository.dart';
 import 'lead_form_sheet.dart';
@@ -30,13 +31,17 @@ class _LeadsMobilePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final leadsAsync = ref.watch(leadListProvider);
     final filter = ref.watch(leadFilterProvider);
+    final role = ref.watch(authProvider).value?.role;
+    final canCreate = role == 'ADMIN' || role == 'DIRECTOR';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Khách hàng tiềm năng')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => showLeadFormSheet(context),
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: canCreate
+          ? FloatingActionButton(
+              onPressed: () => showLeadFormSheet(context),
+              child: const Icon(Icons.add),
+            )
+          : null,
       body: Column(
         children: [
           Padding(

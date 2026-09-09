@@ -2,11 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.deps import get_current_user, get_session, require_roles
-from app.core.permissions import Role
+from app.core.permissions import PermissionGroup, Role
 from app.core.security import create_access_token, create_refresh_token
 from app.models.user import User
 from app.schemas.auth import LoginRequest, MeResponse, PreviewRoleRequest, PreviewRoleResponse, TokenResponse
 from app.services.auth_service import AccountLockedError, InvalidCredentialsError, authenticate
+from app.services.permission_service import has_permission
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -30,8 +31,20 @@ async def login(payload: LoginRequest, session: AsyncSession = Depends(get_sessi
 
 
 @router.get("/me", response_model=MeResponse)
-async def me(user: User = Depends(get_current_user)) -> MeResponse:
-    return MeResponse(id=user.id, email=user.email, full_name=user.full_name, role=user.role, department_id=user.department_id)
+async def me(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> MeResponse:
+    """FR-1.7 — kèm quyền hiệu lực để FE tự ẩn/hiện nút, không chỉ dựa vào role."""
+    effective_permissions = {group.value: await has_permission(session, user, group) for group in PermissionGroup}
+    return MeResponse(
+        id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        role=user.role,
+        department_id=user.department_id,
+        effective_permissions=effective_permissions,
+    )
 
 
 @router.post("/preview-role", response_model=PreviewRoleResponse)

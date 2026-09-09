@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/web_badge.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../employees/application/employee_provider.dart';
 import '../../employees/data/employee_repository.dart';
 import '../../users/application/user_provider.dart';
@@ -23,6 +24,8 @@ class DepartmentsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final departmentsAsync = ref.watch(departmentListProvider);
     final usersAsync = ref.watch(userListProvider);
+    final role = ref.watch(authProvider).value?.role;
+    final canManage = role == 'ADMIN' || role == 'DIRECTOR';
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -45,12 +48,13 @@ class DepartmentsPage extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  FilledButton.icon(
-                    onPressed: () => showDepartmentFormDialog(context),
-                    style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Tạo bộ phận'),
-                  ),
+                  if (canManage)
+                    FilledButton.icon(
+                      onPressed: () => showDepartmentFormDialog(context),
+                      style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Tạo bộ phận'),
+                    ),
                 ],
               ),
               const SizedBox(height: 20),

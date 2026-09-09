@@ -16,6 +16,8 @@ import '../../../shared/widgets/app_toast.dart';
 
 const _leadSources = ['Giới thiệu', 'Website', 'Mạng xã hội', 'Khác'];
 
+bool _canManageLeads(String? role) => role == 'ADMIN' || role == 'DIRECTOR';
+
 (WebBadgeVariant, String) _statusBadge(LeadStatus status) => switch (status) {
       LeadStatus.newLead => (WebBadgeVariant.outline, 'Mới'),
       LeadStatus.consulting => (WebBadgeVariant.warning, 'Đang tư vấn'),
@@ -33,6 +35,7 @@ class LeadsWebPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final leadsAsync = ref.watch(leadListProvider);
+    final canCreate = _canManageLeads(ref.watch(authProvider).value?.role);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -50,8 +53,7 @@ class LeadsWebPage extends ConsumerWidget {
             const SizedBox(height: 20),
             _StatsRow(leadsAsync: leadsAsync),
             const SizedBox(height: 20),
-            const _CreateLeadCard(),
-            const SizedBox(height: 20),
+            if (canCreate) ...[const _CreateLeadCard(), const SizedBox(height: 20)],
             const _FilterRow(),
             const SizedBox(height: 20),
             _LeadsTableCard(leadsAsync: leadsAsync),

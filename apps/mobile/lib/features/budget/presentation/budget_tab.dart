@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../cost_categories/application/cost_category_provider.dart';
 import '../../cost_categories/data/cost_category_repository.dart';
 import '../../projects/application/project_provider.dart';
@@ -23,6 +24,7 @@ class BudgetTab extends ConsumerWidget {
     final categoriesAsync = ref.watch(costCategoryListProvider(scope: CostCategoryScope.project));
     final projectAsync = ref.watch(projectDetailProvider(projectId));
     final currency = NumberFormat.decimalPattern('vi');
+    final canManage = ref.watch(authProvider).value?.role != 'EMPLOYEE';
 
     return budgetsAsync.when(
       data: (budgets) {
@@ -50,12 +52,13 @@ class BudgetTab extends ConsumerWidget {
                     ],
                   ),
                 ),
-                FilledButton.icon(
-                  onPressed: () => showBudgetLineDialog(context, projectId),
-                  style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Thêm dòng dự toán'),
-                ),
+                if (canManage)
+                  FilledButton.icon(
+                    onPressed: () => showBudgetLineDialog(context, projectId),
+                    style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Thêm dòng dự toán'),
+                  ),
               ],
             ),
             const SizedBox(height: 12),

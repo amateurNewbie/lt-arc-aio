@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../cost_categories/application/cost_category_provider.dart';
 import '../../cost_categories/data/cost_category_repository.dart';
 import '../../funds/application/fund_provider.dart';
@@ -27,19 +28,26 @@ class ExpenseTab extends ConsumerWidget {
     final categoriesAsync = ref.watch(costCategoryListProvider(scope: CostCategoryScope.project));
     final workItemsAsync = ref.watch(workItemListProvider(projectId));
     final currency = NumberFormat.decimalPattern('vi');
+    // PROJECT_CASHBOOK: Admin/Director luôn có; Trưởng BP có nếu được gán phụ
+    // trách đúng dự án này (kiểm tra ở backend `require_project_finance_write`,
+    // FE không có sẵn danh sách gán nên chỉ lọc thô theo role, không ẩn nhầm
+    // Trưởng BP hợp lệ); Nhân viên cần được cấp quyền riêng — ẩn theo role để
+    // tránh trường hợp thường gặp nhất (Nhân viên) thấy nút mà bấm vào bị 403.
+    final canManage = ref.watch(authProvider).value?.role != 'EMPLOYEE';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: FilledButton.icon(
-            onPressed: () => showExpenseDialog(context, projectId),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Thêm khoản chi'),
+        if (canManage)
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.icon(
+              onPressed: () => showExpenseDialog(context, projectId),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Thêm khoản chi'),
+            ),
           ),
-        ),
         const SizedBox(height: 12),
         Expanded(
           child: costsAsync.when(

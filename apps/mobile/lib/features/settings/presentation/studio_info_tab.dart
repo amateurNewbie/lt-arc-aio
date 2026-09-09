@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_exception.dart';
+import '../../auth/application/auth_provider.dart';
 import '../application/settings_provider.dart';
 import '../data/settings_repository.dart';
 import '../../../shared/widgets/app_toast.dart';
@@ -60,6 +61,8 @@ class _StudioInfoTabState extends ConsumerState<StudioInfoTab> {
   @override
   Widget build(BuildContext context) {
     final settingsAsync = ref.watch(companySettingsProvider);
+    final role = ref.watch(authProvider).value?.role;
+    final canManage = role == 'ADMIN' || role == 'DIRECTOR';
 
     return settingsAsync.when(
       data: (s) {
@@ -99,10 +102,11 @@ class _StudioInfoTabState extends ConsumerState<StudioInfoTab> {
                 decoration: const InputDecoration(labelText: 'Nhắc phân bổ chi phí chung — ngày trong tháng'),
               ),
               const SizedBox(height: 20),
-              FilledButton(
-                onPressed: _saving ? null : _submit,
-                child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Lưu'),
-              ),
+              if (canManage)
+                FilledButton(
+                  onPressed: _saving ? null : _submit,
+                  child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Lưu'),
+                ),
             ],
           ),
         );

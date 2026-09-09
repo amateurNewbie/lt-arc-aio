@@ -367,13 +367,17 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
             ),
             child: Align(
               alignment: Alignment.centerRight,
-              child: FilledButton(
-                onPressed: _saving ? null : (widget.isCreate ? _submitCreate : _submitUpdate),
-                style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
-                child: _saving
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text(widget.isCreate ? 'Tạo dự án' : 'Lưu thay đổi'),
-              ),
+              child: Builder(builder: (context) {
+                final role = ref.watch(authProvider).value?.role;
+                if (role != 'ADMIN' && role != 'DIRECTOR') return const SizedBox.shrink();
+                return FilledButton(
+                  onPressed: _saving ? null : (widget.isCreate ? _submitCreate : _submitUpdate),
+                  style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                  child: _saving
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Text(widget.isCreate ? 'Tạo dự án' : 'Lưu thay đổi'),
+                );
+              }),
             ),
           ),
         ],

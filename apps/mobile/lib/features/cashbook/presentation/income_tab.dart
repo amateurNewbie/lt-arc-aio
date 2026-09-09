@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../contracts/application/contract_provider.dart';
 import '../../contracts/data/contract_repository.dart';
 import '../../funds/application/fund_provider.dart';
@@ -29,6 +30,7 @@ class IncomeTab extends ConsumerWidget {
     final paymentsAsync = ref.watch(projectPaymentListProvider(projectId));
     final contractsAsync = ref.watch(contractListProvider(projectId));
     final currency = NumberFormat.decimalPattern('vi');
+    final canManage = ref.watch(authProvider).value?.role != 'EMPLOYEE';
 
     final milestoneNames = <String, String>{};
     for (final c in contractsAsync.asData?.value ?? const <Contract>[]) {
@@ -40,15 +42,16 @@ class IncomeTab extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: FilledButton.icon(
-            onPressed: () => showDialog(context: context, builder: (_) => _IncomeDialog(projectId: projectId)),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Thêm khoản thu'),
+        if (canManage)
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.icon(
+              onPressed: () => showDialog(context: context, builder: (_) => _IncomeDialog(projectId: projectId)),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Thêm khoản thu'),
+            ),
           ),
-        ),
         const SizedBox(height: 12),
         Expanded(
           child: paymentsAsync.when(

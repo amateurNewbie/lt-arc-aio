@@ -5,8 +5,11 @@ import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/app_toast.dart';
 import '../../../shared/widgets/web_badge.dart';
+import '../../auth/application/auth_provider.dart';
 import '../application/stage_template_provider.dart';
 import '../data/stage_template_repository.dart';
+
+bool _canManageStageTemplates(String? role) => role == 'ADMIN' || role == 'DIRECTOR';
 
 InputDecoration _fieldDecoration({String? label, String? hint}) => InputDecoration(
       labelText: label,
@@ -109,6 +112,15 @@ class _StageTemplatesTabState extends ConsumerState<StageTemplatesTab> {
   @override
   Widget build(BuildContext context) {
     final templatesAsync = ref.watch(stageTemplateListProvider());
+    final me = ref.watch(authProvider).value;
+    if (!_canManageStageTemplates(me?.role)) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text('Chỉ Quản trị và Giám đốc được quản lý mẫu giai đoạn dự án.'),
+        ),
+      );
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),

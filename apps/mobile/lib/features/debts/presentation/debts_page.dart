@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/web_badge.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../contracts/application/contract_provider.dart';
 import '../../contracts/data/contract_repository.dart';
 import '../../cost_categories/application/cost_category_provider.dart';
@@ -146,11 +147,12 @@ class _ReceivablesWebTab extends ConsumerWidget {
                               ],
                             ),
                           ),
-                          OutlinedButton.icon(
-                            onPressed: () => showReceivePaymentDialog(context, contracts),
-                            icon: const Icon(Icons.add, size: 16),
-                            label: const Text('Ghi nhận thanh toán'),
-                          ),
+                          if (ref.watch(authProvider).value?.hasPermission('CONTRACTS_COLLECT') ?? false)
+                            OutlinedButton.icon(
+                              onPressed: () => showReceivePaymentDialog(context, contracts),
+                              icon: const Icon(Icons.add, size: 16),
+                              label: const Text('Ghi nhận thanh toán'),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -257,6 +259,7 @@ class _PayablesWebTab extends ConsumerWidget {
     final categoriesAsync = ref.watch(costCategoryListProvider());
     final currency = NumberFormat.decimalPattern('vi');
     final dateFormat = DateFormat('dd/MM/yyyy');
+    final canSettle = ref.watch(authProvider).value?.hasPermission('DEBTS') ?? false;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -295,11 +298,12 @@ class _PayablesWebTab extends ConsumerWidget {
                       Row(
                         children: [
                           const Expanded(child: Text('Công nợ phải trả theo nhà cung cấp / thầu phụ', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600))),
-                          OutlinedButton.icon(
-                            onPressed: settleable.isEmpty ? null : () => _pickPayableToSettle(context, settleable),
-                            icon: const Icon(Icons.add, size: 16),
-                            label: const Text('Ghi nhận thanh toán'),
-                          ),
+                          if (canSettle)
+                            OutlinedButton.icon(
+                              onPressed: settleable.isEmpty ? null : () => _pickPayableToSettle(context, settleable),
+                              icon: const Icon(Icons.add, size: 16),
+                              label: const Text('Ghi nhận thanh toán'),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -325,7 +329,7 @@ class _PayablesWebTab extends ConsumerWidget {
                             rows: [
                               for (final p in payables)
                                 DataRow(
-                                  onSelectChanged: p.remaining > 0 ? (_) => showSettlePayableDialog(context, p) : null,
+                                  onSelectChanged: (canSettle && p.remaining > 0) ? (_) => showSettlePayableDialog(context, p) : null,
                                   cells: [
                                     DataCell(Text(p.vendorName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
                                     DataCell(Text(projectsById[p.projectId]?.name ?? '—', style: const TextStyle(fontSize: 13))),

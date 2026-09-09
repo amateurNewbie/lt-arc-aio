@@ -15,38 +15,46 @@ class MorePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final role = ref.watch(authProvider).value?.role;
+    final canSeeFinance = role == 'ADMIN' || role == 'DIRECTOR';
+    final canSeeOrg = role == 'ADMIN' || role == 'DIRECTOR' || role == 'DEPARTMENT_HEAD';
+
     return Scaffold(
       appBar: AppBar(title: const Text('Menu')),
       body: ListView(
         children: [
-          ListTile(
-            leading: const Icon(Icons.account_balance_outlined),
-            title: const Text('Tài chính'),
-            subtitle: const Text('P&L, chi phí chung, quỹ & dòng tiền'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FinancePage())),
-          ),
-          ListTile(
-            leading: const Icon(Icons.request_quote_outlined),
-            title: const Text('Công nợ'),
-            subtitle: const Text('Phải thu · Phải trả'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DebtsPage())),
-          ),
-          ListTile(
-            leading: const Icon(Icons.apartment_outlined),
-            title: const Text('Bộ phận'),
-            subtitle: const Text('Danh sách bộ phận, Trưởng bộ phận phụ trách'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DepartmentsPage())),
-          ),
-          ListTile(
-            leading: const Icon(Icons.badge_outlined),
-            title: const Text('Nhân sự & Lương'),
-            subtitle: const Text('Nhân viên, chức danh lương, số công, trả lương'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HrPage())),
-          ),
+          if (canSeeFinance)
+            ListTile(
+              leading: const Icon(Icons.account_balance_outlined),
+              title: const Text('Tài chính'),
+              subtitle: const Text('P&L, chi phí chung, quỹ & dòng tiền'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FinancePage())),
+            ),
+          if (canSeeOrg)
+            ListTile(
+              leading: const Icon(Icons.request_quote_outlined),
+              title: const Text('Công nợ'),
+              subtitle: const Text('Phải thu · Phải trả'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DebtsPage())),
+            ),
+          if (canSeeOrg)
+            ListTile(
+              leading: const Icon(Icons.apartment_outlined),
+              title: const Text('Bộ phận'),
+              subtitle: const Text('Danh sách bộ phận, Trưởng bộ phận phụ trách'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DepartmentsPage())),
+            ),
+          if (canSeeOrg)
+            ListTile(
+              leading: const Icon(Icons.badge_outlined),
+              title: const Text('Nhân sự & Lương'),
+              subtitle: const Text('Nhân viên, chức danh lương, số công, trả lương'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HrPage())),
+            ),
           ListTile(
             leading: const Icon(Icons.settings_outlined),
             title: const Text('Cài đặt'),

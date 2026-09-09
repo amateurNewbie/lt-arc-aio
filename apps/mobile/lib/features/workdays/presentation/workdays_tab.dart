@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_exception.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../employees/application/employee_provider.dart';
 import '../../users/application/user_provider.dart';
 import '../application/workdays_provider.dart';
@@ -71,12 +72,15 @@ class _WorkdaysTabState extends ConsumerState<WorkdaysTab> {
     final employeesAsync = ref.watch(employeeListProvider);
     final usersAsync = ref.watch(userListProvider);
     final workdaysAsync = ref.watch(workdaysMonthProvider(month));
+    final canManage = ref.watch(authProvider).value?.hasPermission('WORKDAYS_ENTRY') ?? false;
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: _saving ? null : _save,
-        child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_outlined),
-      ),
+      floatingActionButton: canManage
+          ? FloatingActionButton(
+              onPressed: _saving ? null : _save,
+              child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_outlined),
+            )
+          : null,
       body: Column(
         children: [
           Padding(

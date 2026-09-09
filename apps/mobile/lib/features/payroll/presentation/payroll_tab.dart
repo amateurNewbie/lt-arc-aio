@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/web_badge.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../departments/application/department_provider.dart';
 import '../../departments/data/department_repository.dart';
 import '../../employees/application/employee_provider.dart';
@@ -63,6 +64,9 @@ class _PayrollTabState extends ConsumerState<PayrollTab> {
     final usersAsync = ref.watch(userListProvider);
     final departmentsAsync = ref.watch(departmentListProvider);
     final currency = NumberFormat.decimalPattern('vi');
+    final role = ref.watch(authProvider).value?.role;
+    final canRun = role == 'ADMIN' || role == 'DIRECTOR';
+    final canPay = role == 'ADMIN';
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -117,18 +121,21 @@ class _PayrollTabState extends ConsumerState<PayrollTab> {
                             ),
                             TextButton(onPressed: _pickMonth, child: const Text('Đổi tháng')),
                             const SizedBox(width: 4),
-                            OutlinedButton.icon(
-                              onPressed: _running ? null : _run,
-                              icon: _running ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.calculate_outlined, size: 16),
-                              label: const Text('Tính lương tháng này'),
-                            ),
-                            const SizedBox(width: 8),
-                            FilledButton.icon(
-                              onPressed: () => showPayrollPayDialog(context, month),
-                              style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
-                              icon: const Icon(Icons.payments_outlined, size: 16),
-                              label: const Text('Trả lương'),
-                            ),
+                            if (canRun) ...[
+                              OutlinedButton.icon(
+                                onPressed: _running ? null : _run,
+                                icon: _running ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.calculate_outlined, size: 16),
+                                label: const Text('Tính lương tháng này'),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            if (canPay)
+                              FilledButton.icon(
+                                onPressed: () => showPayrollPayDialog(context, month),
+                                style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                                icon: const Icon(Icons.payments_outlined, size: 16),
+                                label: const Text('Trả lương'),
+                              ),
                           ],
                         ),
                       ),

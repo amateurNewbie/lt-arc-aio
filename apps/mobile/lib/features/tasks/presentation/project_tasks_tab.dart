@@ -36,12 +36,13 @@ class ProjectTasksTab extends ConsumerWidget {
         Row(
           children: [
             const Expanded(child: Text('Danh sách công việc', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600))),
-            FilledButton.icon(
-              onPressed: () => showProjectTaskDialog(context, projectId),
-              style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Tạo công việc'),
-            ),
+            if (me?.role != 'EMPLOYEE')
+              FilledButton.icon(
+                onPressed: () => showProjectTaskDialog(context, projectId),
+                style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Tạo công việc'),
+              ),
           ],
         ),
         const SizedBox(height: 12),

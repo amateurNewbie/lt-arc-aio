@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/app_toast.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../cost_categories/application/cost_category_provider.dart';
 import '../../cost_categories/data/cost_category_repository.dart';
 import '../../funds/application/fund_provider.dart';
@@ -127,6 +128,7 @@ class _OverheadAllocationTabState extends ConsumerState<OverheadAllocationTab> {
     final fundsAsync = ref.watch(fundListProvider);
     final projectsAsync = ref.watch(overheadActiveProjectsProvider);
     final categoriesById = {for (final c in categoriesAsync.value ?? const <CostCategory>[]) c.id: c};
+    final canManage = ref.watch(authProvider).value?.hasPermission('OVERHEAD_ALLOCATE') ?? false;
 
     final costs = costsAsync.value ?? const <OverheadCost>[];
     final totalMonth = costs.fold<int>(0, (s, c) => s + c.amount);
@@ -255,13 +257,14 @@ class _OverheadAllocationTabState extends ConsumerState<OverheadAllocationTab> {
                         error: (e, _) => Text('$e'),
                       ),
                     ),
-                    FilledButton(
-                      onPressed: _savingCost ? null : _saveCost,
-                      style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
-                      child: _savingCost
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Lưu'),
-                    ),
+                    if (canManage)
+                      FilledButton(
+                        onPressed: _savingCost ? null : _saveCost,
+                        style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                        child: _savingCost
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Text('Lưu'),
+                      ),
                   ],
                 ),
               ],
@@ -344,15 +347,16 @@ class _OverheadAllocationTabState extends ConsumerState<OverheadAllocationTab> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    FilledButton(
-                      onPressed: _applying || projects.isEmpty || totalMonth <= 0
-                          ? null
-                          : () => _applyAllocation(projects, totalMonth),
-                      style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
-                      child: _applying
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Apply'),
-                    ),
+                    if (canManage)
+                      FilledButton(
+                        onPressed: _applying || projects.isEmpty || totalMonth <= 0
+                            ? null
+                            : () => _applyAllocation(projects, totalMonth),
+                        style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                        child: _applying
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Text('Apply'),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 4),

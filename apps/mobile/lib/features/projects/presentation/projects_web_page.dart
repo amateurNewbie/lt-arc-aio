@@ -4,10 +4,13 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/web_badge.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../reports/application/reports_provider.dart';
 import '../../reports/data/reports_repository.dart';
 import '../application/project_provider.dart';
 import '../data/project_repository.dart';
+
+bool _canManageProjects(String? role) => role == 'ADMIN' || role == 'DIRECTOR';
 
 WebBadgeVariant _categoryVariant(ProjectCategory c) => switch (c) {
       ProjectCategory.construction => WebBadgeVariant.warning,
@@ -32,6 +35,7 @@ class ProjectsWebPage extends ConsumerWidget {
     final filter = ref.watch(projectFilterProvider);
     final projectsAsync = ref.watch(projectListProvider(status: filter.status, category: filter.category, search: filter.search));
     final pnlAsync = ref.watch(profitLossReportProvider());
+    final canManage = _canManageProjects(ref.watch(authProvider).value?.role);
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -54,12 +58,13 @@ class ProjectsWebPage extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  FilledButton.icon(
-                    onPressed: () => ref.read(projectPaneProvider.notifier).showCreate(),
-                    style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Tạo dự án'),
-                  ),
+                  if (canManage)
+                    FilledButton.icon(
+                      onPressed: () => ref.read(projectPaneProvider.notifier).showCreate(),
+                      style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Tạo dự án'),
+                    ),
                 ],
               ),
               const SizedBox(height: 16),

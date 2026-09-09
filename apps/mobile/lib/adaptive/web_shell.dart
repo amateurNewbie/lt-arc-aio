@@ -45,13 +45,13 @@ class _WebShellState extends ConsumerState<WebShell> {
     _NavItem(Icons.people_outline, 'Khách hàng', LeadsPage()),
   ];
 
-  static const _taiChinh = [
+  static const _taiChinhAll = [
     _NavItem(Icons.account_balance_outlined, 'Tài chính', FinancePage()),
     _NavItem(Icons.description_outlined, 'Hợp đồng', ContractsPage()),
     _NavItem(Icons.request_quote_outlined, 'Công nợ', DebtsPage()),
   ];
 
-  static const _toChuc = [
+  static const _toChucAll = [
     _NavItem(Icons.apartment_outlined, 'Bộ phận', DepartmentsPage()),
     _NavItem(Icons.badge_outlined, 'Nhân sự & Lương', HrPage()),
   ];
@@ -60,7 +60,20 @@ class _WebShellState extends ConsumerState<WebShell> {
     _NavItem(Icons.settings_outlined, 'Cài đặt', SettingsPage()),
   ];
 
-  static const _allItems = [..._dieuHanh, ..._taiChinh, ..._toChuc, ..._heThong];
+  /// FR-1 — chỉ hiện mục sidebar mà role hiện tại thực sự gọi được API đứng
+  /// sau nó; ẩn "Tài chính" (report P&L/cashflow: ADMIN/DIRECTOR) và "Công nợ"
+  /// (ADMIN/DIRECTOR/DEPARTMENT_HEAD) cho Nhân viên. "Hợp đồng" mở cho mọi role
+  /// (GET /api/contracts không giới hạn).
+  static List<_NavItem> _taiChinhFor(String? role) => [
+        if (role == 'ADMIN' || role == 'DIRECTOR') _taiChinhAll[0],
+        _taiChinhAll[1],
+        if (role == 'ADMIN' || role == 'DIRECTOR' || role == 'DEPARTMENT_HEAD') _taiChinhAll[2],
+      ];
+
+  /// "Bộ phận"/"Nhân sự & Lương" đều yêu cầu ADMIN/DIRECTOR/DEPARTMENT_HEAD ở
+  /// backend — Nhân viên không thấy 2 mục này nữa.
+  static List<_NavItem> _toChucFor(String? role) =>
+      (role == 'ADMIN' || role == 'DIRECTOR' || role == 'DEPARTMENT_HEAD') ? _toChucAll : const [];
 
   void _select(int index) {
     if (index == _projectsIndex) {
@@ -72,6 +85,10 @@ class _WebShellState extends ConsumerState<WebShell> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).value;
+    final taiChinh = _taiChinhFor(user?.role);
+    final toChuc = _toChucFor(user?.role);
+    final allItems = [..._dieuHanh, ...taiChinh, ...toChuc, ..._heThong];
+    if (_index >= allItems.length) _index = 0;
 
     return Scaffold(
       body: Row(
@@ -89,12 +106,16 @@ class _WebShellState extends ConsumerState<WebShell> {
                 ),
                 _groupLabel('ĐIỀU HÀNH'),
                 for (var i = 0; i < _dieuHanh.length; i++) _item(i, _dieuHanh[i]),
-                _groupLabel('TÀI CHÍNH'),
-                for (var i = 0; i < _taiChinh.length; i++) _item(_dieuHanh.length + i, _taiChinh[i]),
-                _groupLabel('TỔ CHỨC'),
-                for (var i = 0; i < _toChuc.length; i++) _item(_dieuHanh.length + _taiChinh.length + i, _toChuc[i]),
+                if (taiChinh.isNotEmpty) ...[
+                  _groupLabel('TÀI CHÍNH'),
+                  for (var i = 0; i < taiChinh.length; i++) _item(_dieuHanh.length + i, taiChinh[i]),
+                ],
+                if (toChuc.isNotEmpty) ...[
+                  _groupLabel('TỔ CHỨC'),
+                  for (var i = 0; i < toChuc.length; i++) _item(_dieuHanh.length + taiChinh.length + i, toChuc[i]),
+                ],
                 _groupLabel('HỆ THỐNG'),
-                for (var i = 0; i < _heThong.length; i++) _item(_dieuHanh.length + _taiChinh.length + _toChuc.length + i, _heThong[i]),
+                for (var i = 0; i < _heThong.length; i++) _item(_dieuHanh.length + taiChinh.length + toChuc.length + i, _heThong[i]),
                 const Spacer(),
                 if (user != null)
                   Padding(
@@ -113,7 +134,7 @@ class _WebShellState extends ConsumerState<WebShell> {
               ],
             ),
           ),
-          Expanded(child: IndexedStack(index: _index, children: [for (final item in _allItems) item.page])),
+          Expanded(child: IndexedStack(index: _index, children: [for (final item in allItems) item.page])),
         ],
       ),
     );

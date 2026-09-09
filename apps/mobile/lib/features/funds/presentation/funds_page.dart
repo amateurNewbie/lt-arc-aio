@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../auth/application/auth_provider.dart';
 import '../application/fund_provider.dart';
 import '../data/fund_repository.dart';
 import 'fund_form_sheet.dart';
@@ -15,10 +16,11 @@ class FundsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final fundsAsync = ref.watch(fundListProvider);
     final currency = NumberFormat.decimalPattern('vi');
+    final canManage = ref.watch(authProvider).value?.hasPermission('FUNDS') ?? false;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Quỹ & dòng tiền')),
-      floatingActionButton: FloatingActionButton(onPressed: () => showFundFormSheet(context), child: const Icon(Icons.add)),
+      floatingActionButton: canManage ? FloatingActionButton(onPressed: () => showFundFormSheet(context), child: const Icon(Icons.add)) : null,
       body: fundsAsync.when(
         data: (funds) {
           if (funds.isEmpty) return const Center(child: Text('Chưa có quỹ/tài khoản nào'));

@@ -159,8 +159,10 @@ class _ContractsPageState extends ConsumerState<ContractsPage> {
                         ),
                       const SizedBox(height: 20),
                       if (_selected != null) ...[
-                        _CollectMilestoneCard(contract: _selected!),
-                        const SizedBox(height: 20),
+                        if (ref.watch(authProvider).value?.hasPermission('CONTRACTS_COLLECT') ?? false) ...[
+                          _CollectMilestoneCard(contract: _selected!),
+                          const SizedBox(height: 20),
+                        ],
                         _MilestoneScheduleCard(contract: _selected!, project: projectsById[_selected!.projectId]),
                       ],
                     ],

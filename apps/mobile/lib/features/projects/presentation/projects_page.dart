@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../auth/application/auth_provider.dart';
 import '../application/project_provider.dart';
 import '../data/project_repository.dart';
 import 'project_editor_page.dart';
@@ -36,16 +37,20 @@ class _ProjectsMobilePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final projectsAsync = ref.watch(projectListProvider());
 
+    final role = ref.watch(authProvider).value?.role;
+    final canManage = role == 'ADMIN' || role == 'DIRECTOR';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dự án'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ProjectEditorPage()),
+          if (canManage)
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ProjectEditorPage()),
+              ),
             ),
-          ),
         ],
       ),
       body: projectsAsync.when(

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/responsive_stat_row.dart';
 import '../../../shared/widgets/web_badge.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../contracts/application/contract_provider.dart';
@@ -118,13 +119,11 @@ class _ReceivablesWebTab extends ConsumerWidget {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                ResponsiveStatRow(
                   children: [
-                    Expanded(child: _StatCard(icon: Icons.access_time, color: AppColors.webMutedFg, value: '${currency.format(totalRemaining)} ₫', label: 'Tổng công nợ phải thu')),
-                    const SizedBox(width: 12),
-                    Expanded(child: _StatCard(icon: Icons.warning_amber_outlined, color: AppColors.webDestructive, value: '${currency.format(overdueAmount)} ₫', label: 'Đã quá hạn thanh toán', valueColor: AppColors.webDestructive)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _StatCard(icon: Icons.people_outline, color: AppColors.gold, value: '$clientsWithDebt', label: 'Khách hàng đang có công nợ')),
+                    _StatCard(icon: Icons.access_time, color: AppColors.webMutedFg, value: '${currency.format(totalRemaining)} ₫', label: 'Tổng công nợ phải thu'),
+                    _StatCard(icon: Icons.warning_amber_outlined, color: AppColors.webDestructive, value: '${currency.format(overdueAmount)} ₫', label: 'Đã quá hạn thanh toán', valueColor: AppColors.webDestructive),
+                    _StatCard(icon: Icons.people_outline, color: AppColors.gold, value: '$clientsWithDebt', label: 'Khách hàng đang có công nợ'),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -279,13 +278,11 @@ class _PayablesWebTab extends ConsumerWidget {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                ResponsiveStatRow(
                   children: [
-                    Expanded(child: _StatCard(icon: Icons.access_time, color: AppColors.webMutedFg, value: '${currency.format(totalRemaining)} ₫', label: 'Tổng công nợ phải trả')),
-                    const SizedBox(width: 12),
-                    Expanded(child: _StatCard(icon: Icons.warning_amber_outlined, color: AppColors.webDestructive, value: '${currency.format(overdueAmount)} ₫', label: 'Đã quá hạn thanh toán', valueColor: AppColors.webDestructive)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _StatCard(icon: Icons.inventory_2_outlined, color: AppColors.gold, value: '$vendorsWithDebt', label: 'NCC/thầu phụ đang nợ')),
+                    _StatCard(icon: Icons.access_time, color: AppColors.webMutedFg, value: '${currency.format(totalRemaining)} ₫', label: 'Tổng công nợ phải trả'),
+                    _StatCard(icon: Icons.warning_amber_outlined, color: AppColors.webDestructive, value: '${currency.format(overdueAmount)} ₫', label: 'Đã quá hạn thanh toán', valueColor: AppColors.webDestructive),
+                    _StatCard(icon: Icons.inventory_2_outlined, color: AppColors.gold, value: '$vendorsWithDebt', label: 'NCC/thầu phụ đang nợ'),
                   ],
                 ),
                 const SizedBox(height: 16),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/responsive_stat_row.dart';
 import '../../funds/application/fund_provider.dart';
 import '../../funds/data/fund_repository.dart';
 import '../../funds/presentation/funds_page.dart';
@@ -35,13 +36,11 @@ class _CashflowTabState extends ConsumerState<CashflowTab> {
           fundsAsync.when(
             data: (funds) {
               final total = funds.fold<int>(0, (s, f) => s + f.balance);
-              return Row(
+              return ResponsiveStatRow(
                 children: [
-                  for (final f in funds) ...[
-                    Expanded(child: _StatCard(icon: f.type == FundType.cash ? Icons.payments_outlined : Icons.account_balance_outlined, value: '${currency.format(f.balance)} ₫', label: f.name)),
-                    const SizedBox(width: 12),
-                  ],
-                  Expanded(child: _StatCard(icon: Icons.trending_up, value: '${currency.format(total)} ₫', label: 'Tổng số dư mọi quỹ', color: AppColors.webSuccess)),
+                  for (final f in funds)
+                    _StatCard(icon: f.type == FundType.cash ? Icons.payments_outlined : Icons.account_balance_outlined, value: '${currency.format(f.balance)} ₫', label: f.name),
+                  _StatCard(icon: Icons.trending_up, value: '${currency.format(total)} ₫', label: 'Tổng số dư mọi quỹ', color: AppColors.webSuccess),
                 ],
               );
             },

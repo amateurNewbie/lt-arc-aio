@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/responsive_stat_row.dart';
 import '../../../shared/widgets/web_badge.dart';
 import '../../debts/application/debt_provider.dart';
 import '../../debts/data/debt_repository.dart';
@@ -195,22 +196,17 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  ResponsiveStatRow(
                     children: [
-                      Expanded(child: _StatCard(icon: Icons.trending_up, color: AppColors.webSuccess, value: '${currency.format(totalRevenue)} ₫', label: 'Tổng doanh thu đã thu')),
-                      const SizedBox(width: 12),
-                      Expanded(child: _StatCard(icon: Icons.trending_down, color: AppColors.webWarning, value: '${currency.format(totalCost)} ₫', label: 'Tổng chi phí đã chi')),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StatCard(
-                          icon: Icons.account_balance_outlined,
-                          color: totalProfit >= 0 ? AppColors.webSuccess : AppColors.webDestructive,
-                          value: '${totalProfit >= 0 ? '+' : ''}${currency.format(totalProfit)} ₫',
-                          label: 'Lãi/Lỗ ròng',
-                        ),
+                      _StatCard(icon: Icons.trending_up, color: AppColors.webSuccess, value: '${currency.format(totalRevenue)} ₫', label: 'Tổng doanh thu đã thu'),
+                      _StatCard(icon: Icons.trending_down, color: AppColors.webWarning, value: '${currency.format(totalCost)} ₫', label: 'Tổng chi phí đã chi'),
+                      _StatCard(
+                        icon: Icons.account_balance_outlined,
+                        color: totalProfit >= 0 ? AppColors.webSuccess : AppColors.webDestructive,
+                        value: '${totalProfit >= 0 ? '+' : ''}${currency.format(totalProfit)} ₫',
+                        label: 'Lãi/Lỗ ròng',
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(child: _StatCard(icon: Icons.hourglass_empty, color: AppColors.webMutedFg, value: '${currency.format(totalReceivable)} ₫', label: 'Công nợ phải thu')),
+                      _StatCard(icon: Icons.hourglass_empty, color: AppColors.webMutedFg, value: '${currency.format(totalReceivable)} ₫', label: 'Công nợ phải thu'),
                     ],
                   ),
                   const SizedBox(height: 20),

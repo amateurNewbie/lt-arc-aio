@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/responsive_stat_row.dart';
 import '../../../shared/widgets/web_badge.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../departments/application/department_provider.dart';
@@ -48,15 +49,12 @@ class EmployeesTab extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                ResponsiveStatRow(
                   children: [
-                    Expanded(child: _StatCard(icon: Icons.badge_outlined, value: '${employees.length}', label: 'Tổng nhân viên', color: AppColors.gold)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _StatCard(icon: Icons.check_circle_outline, value: '$active', label: 'Đang hoạt động', color: AppColors.webSuccess)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _StatCard(icon: Icons.pause_circle_outline, value: '$onLeave', label: 'Tạm nghỉ', color: AppColors.webMutedFg)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _StatCard(icon: Icons.apartment_outlined, value: '${departmentsById.length}', label: 'Bộ phận', color: AppColors.webWarning)),
+                    _StatCard(icon: Icons.badge_outlined, value: '${employees.length}', label: 'Tổng nhân viên', color: AppColors.gold),
+                    _StatCard(icon: Icons.check_circle_outline, value: '$active', label: 'Đang hoạt động', color: AppColors.webSuccess),
+                    _StatCard(icon: Icons.pause_circle_outline, value: '$onLeave', label: 'Tạm nghỉ', color: AppColors.webMutedFg),
+                    _StatCard(icon: Icons.apartment_outlined, value: '${departmentsById.length}', label: 'Bộ phận', color: AppColors.webWarning),
                   ],
                 ),
                 const SizedBox(height: 20),

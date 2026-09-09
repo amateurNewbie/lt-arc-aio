@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/responsive_stat_row.dart';
 import '../../../shared/widgets/web_badge.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../departments/application/department_provider.dart';
@@ -84,15 +85,12 @@ class _PayrollTabState extends ConsumerState<PayrollTab> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                ResponsiveStatRow(
                   children: [
-                    Expanded(child: _StatCard(icon: Icons.account_balance_wallet_outlined, value: '${currency.format(totalFund)} ₫', label: 'Tổng quỹ lương tháng $month', color: AppColors.gold)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _StatCard(icon: Icons.people_outline, value: '${records.length}', label: 'Nhân viên nhận lương', color: AppColors.gold)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _StatCard(icon: Icons.check_circle_outline, value: '$paidCount', label: 'Đã thanh toán', color: AppColors.webSuccess)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _StatCard(icon: Icons.hourglass_empty, value: '$unpaidCount', label: 'Chưa thanh toán', color: AppColors.webWarning)),
+                    _StatCard(icon: Icons.account_balance_wallet_outlined, value: '${currency.format(totalFund)} ₫', label: 'Tổng quỹ lương tháng $month', color: AppColors.gold),
+                    _StatCard(icon: Icons.people_outline, value: '${records.length}', label: 'Nhân viên nhận lương', color: AppColors.gold),
+                    _StatCard(icon: Icons.check_circle_outline, value: '$paidCount', label: 'Đã thanh toán', color: AppColors.webSuccess),
+                    _StatCard(icon: Icons.hourglass_empty, value: '$unpaidCount', label: 'Chưa thanh toán', color: AppColors.webWarning),
                   ],
                 ),
                 const SizedBox(height: 20),

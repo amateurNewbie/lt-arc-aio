@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/responsive_stat_row.dart';
 import '../../../shared/widgets/web_badge.dart';
 import '../../auth/application/auth_provider.dart';
 import '../../funds/application/fund_provider.dart';
@@ -100,15 +101,12 @@ class _ContractsPageState extends ConsumerState<ContractsPage> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      ResponsiveStatRow(
                         children: [
-                          Expanded(child: _StatCard(icon: Icons.description_outlined, color: AppColors.gold, value: '$total', label: 'Tổng hợp đồng')),
-                          const SizedBox(width: 12),
-                          Expanded(child: _StatCard(icon: Icons.check_circle_outline, color: AppColors.webSuccess, value: '$active', label: 'Còn hiệu lực')),
-                          const SizedBox(width: 12),
-                          Expanded(child: _StatCard(icon: Icons.access_time, color: AppColors.webWarning, value: '$expiring', label: 'Sắp hết hạn')),
-                          const SizedBox(width: 12),
-                          Expanded(child: _StatCard(icon: Icons.account_balance_outlined, color: AppColors.webMutedFg, value: '${currency.format(totalValue)} ₫', label: 'Tổng giá trị hợp đồng')),
+                          _StatCard(icon: Icons.description_outlined, color: AppColors.gold, value: '$total', label: 'Tổng hợp đồng'),
+                          _StatCard(icon: Icons.check_circle_outline, color: AppColors.webSuccess, value: '$active', label: 'Còn hiệu lực'),
+                          _StatCard(icon: Icons.access_time, color: AppColors.webWarning, value: '$expiring', label: 'Sắp hết hạn'),
+                          _StatCard(icon: Icons.account_balance_outlined, color: AppColors.webMutedFg, value: '${currency.format(totalValue)} ₫', label: 'Tổng giá trị hợp đồng'),
                         ],
                       ),
                       const SizedBox(height: 20),

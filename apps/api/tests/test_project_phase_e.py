@@ -57,3 +57,33 @@ async def test_department_head_sees_member_projects(session: AsyncSession) -> No
     visible = await list_projects(session, head)
     assert project.id in {p.id for p in visible}
     assert await user_can_access_project(session, head, project) is True
+
+
+async def test_employee_only_sees_assigned_projects(session: AsyncSession) -> None:
+    """Trước đây EMPLOYEE rơi vào nhánh `return True` mặc định và thấy hết mọi
+    dự án — bug đã sửa, giờ EMPLOYEE phải theo đúng luật giống DEPARTMENT_HEAD."""
+    director = await create_user(session, email="proj-e3-dir@ltarc.vn", password="x", role=Role.DIRECTOR)
+    staff = await create_user(session, email="proj-e3-staff@ltarc.vn", password="x", role=Role.EMPLOYEE)
+
+    assigned = await create_project(
+        session,
+        name="DA nhân viên được gán",
+        client="KH D",
+        category=ProjectCategory.CONSTRUCTION,
+        manager_id=director.id,
+        actor=director,
+        member_ids=[staff.id],
+    )
+    unassigned = await create_project(
+        session,
+        name="DA nhân viên không được gán",
+        client="KH E",
+        category=ProjectCategory.CONSTRUCTION,
+        manager_id=director.id,
+        actor=director,
+    )
+
+    visible = await list_projects(session, staff)
+    assert {p.id for p in visible} == {assigned.id}
+    assert await user_can_access_project(session, staff, assigned) is True
+    assert await user_can_access_project(session, staff, unassigned) is False

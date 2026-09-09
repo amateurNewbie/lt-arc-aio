@@ -256,6 +256,8 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
   Widget build(BuildContext context) {
     final usersAsync = ref.watch(userListProvider);
     final leadsAsync = ref.watch(leadListProvider);
+    final role = ref.watch(authProvider).value?.role;
+    final canManage = role == 'ADMIN' || role == 'DIRECTOR';
 
     if (!widget.isCreate && !_hydrated) {
       final projectAsync = ref.watch(projectDetailProvider(widget.projectId!));
@@ -308,6 +310,7 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
                           usersAsync: usersAsync,
                           leadOptions: leadOptions,
                           convertedLeads: convertedLeads,
+                          canManage: canManage,
                         ),
                       ),
                     ),
@@ -329,6 +332,7 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
                                   usersAsync: usersAsync,
                                   leadOptions: leadOptions,
                                   convertedLeads: convertedLeads,
+                                  canManage: canManage,
                                 ),
                               ),
                             ),
@@ -368,8 +372,7 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
             child: Align(
               alignment: Alignment.centerRight,
               child: Builder(builder: (context) {
-                final role = ref.watch(authProvider).value?.role;
-                if (role != 'ADMIN' && role != 'DIRECTOR') return const SizedBox.shrink();
+                if (!canManage) return const SizedBox.shrink();
                 return FilledButton(
                   onPressed: _saving ? null : (widget.isCreate ? _submitCreate : _submitUpdate),
                   style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
@@ -390,6 +393,7 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
     required AsyncValue<List<UserSummary>> usersAsync,
     required List<SearchableOption> leadOptions,
     required List<Lead> convertedLeads,
+    required bool canManage,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -411,6 +415,7 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
           project: project,
           category: _category,
           onCategoryChanged: (c) => setState(() => _category = c),
+          enabled: canManage,
         ),
         const SizedBox(height: 12),
         usersAsync.when(
@@ -446,6 +451,7 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
                       options: opts,
                       valueId: _managerId,
                       allowClear: false,
+                      enabled: canManage,
                       onChanged: (v) => setState(() => _managerId = v),
                     ),
                     SearchableSingleSelect(
@@ -453,6 +459,7 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
                       label: 'Trưởng BP Thi công',
                       options: opts,
                       valueId: _constructionHeadId,
+                      enabled: canManage,
                       onChanged: (v) => setState(() => _constructionHeadId = v),
                     ),
                     SearchableSingleSelect(
@@ -460,6 +467,7 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
                       label: 'Trưởng BP Thiết kế',
                       options: opts,
                       valueId: _designHeadId,
+                      enabled: canManage,
                       onChanged: (v) => setState(() => _designHeadId = v),
                     ),
                     SearchableMultiSelect(
@@ -467,6 +475,7 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
                       label: 'Nhân viên dự án',
                       options: opts,
                       valueIds: _memberIds,
+                      enabled: canManage,
                       onChanged: (ids) => setState(() => _memberIds = ids),
                     ),
                   ],
@@ -487,6 +496,7 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
           leadOptions: leadOptions,
           leads: convertedLeads,
           onLeadSelected: _onLeadSelected,
+          enabled: canManage,
         ),
         if (!widget.isCreate) ...[
           const SizedBox(height: 16),
@@ -616,12 +626,14 @@ class _HeaderBlock extends StatelessWidget {
     required this.project,
     required this.category,
     required this.onCategoryChanged,
+    this.enabled = true,
   });
 
   final TextEditingController nameController;
   final Project? project;
   final ProjectCategory category;
   final ValueChanged<ProjectCategory> onCategoryChanged;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -633,6 +645,7 @@ class _HeaderBlock extends StatelessWidget {
             Expanded(
               child: TextField(
                 controller: nameController,
+                enabled: enabled,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
                 decoration: const InputDecoration(
                   hintText: 'Tên dự án',
@@ -655,9 +668,11 @@ class _HeaderBlock extends StatelessWidget {
             initialValue: category,
             decoration: const InputDecoration(labelText: 'Phân loại', isDense: true),
             items: [for (final c in ProjectCategory.values) DropdownMenuItem(value: c, child: Text(c.label))],
-            onChanged: (v) {
-              if (v != null) onCategoryChanged(v);
-            },
+            onChanged: enabled
+                ? (v) {
+                    if (v != null) onCategoryChanged(v);
+                  }
+                : null,
           ),
         ),
         if (project != null) ...[
@@ -682,6 +697,7 @@ class _InfoBlock extends StatelessWidget {
     required this.leadOptions,
     required this.leads,
     required this.onLeadSelected,
+    this.enabled = true,
   });
 
   final TextEditingController clientController;
@@ -692,6 +708,7 @@ class _InfoBlock extends StatelessWidget {
   final List<SearchableOption> leadOptions;
   final List<Lead> leads;
   final ValueChanged<Lead?> onLeadSelected;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -713,6 +730,7 @@ class _InfoBlock extends StatelessWidget {
             hint: 'Tìm khách hàng đã chốt...',
             options: leadOptions,
             valueId: leadId,
+            enabled: enabled,
             onChanged: (id) {
               final lead = leads.where((l) => l.id == id).firstOrNull;
               onLeadSelected(lead);
@@ -722,17 +740,23 @@ class _InfoBlock extends StatelessWidget {
             width: 220,
             child: TextField(
               controller: clientController,
+              enabled: enabled,
               decoration: const InputDecoration(labelText: 'Tên khách hàng', isDense: true),
             ),
           ),
           SizedBox(
             width: 180,
-            child: TextField(controller: typeController, decoration: const InputDecoration(labelText: 'Loại hình', isDense: true)),
+            child: TextField(
+              controller: typeController,
+              enabled: enabled,
+              decoration: const InputDecoration(labelText: 'Loại hình', isDense: true),
+            ),
           ),
           SizedBox(
             width: 140,
             child: TextField(
               controller: areaController,
+              enabled: enabled,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: 'Diện tích (m²)', isDense: true),
             ),
@@ -741,6 +765,7 @@ class _InfoBlock extends StatelessWidget {
             width: 200,
             child: TextField(
               controller: budgetController,
+              enabled: enabled,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 labelText: 'Ngân sách (₫)',

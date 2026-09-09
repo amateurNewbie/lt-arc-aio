@@ -49,7 +49,7 @@ async def list_projects_endpoint(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> list[ProjectRead]:
-    """FR-3.2 — Trưởng bộ phận chỉ thấy dự án mình được phân công (FR-3.5)."""
+    """FR-3.2 — Trưởng bộ phận/Nhân viên chỉ thấy dự án mình được phân công (FR-3.5)."""
     projects = await list_projects(session, user, status=status_filter, category=category, search=search)
     return [await _to_read(session, p) for p in projects]
 

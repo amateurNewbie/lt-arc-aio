@@ -34,6 +34,7 @@ class SearchableSingleSelect extends StatelessWidget {
     this.hint = 'Tìm theo tên...',
     this.allowClear = true,
     this.width,
+    this.enabled = true,
   });
 
   final String label;
@@ -43,6 +44,7 @@ class SearchableSingleSelect extends StatelessWidget {
   final String hint;
   final bool allowClear;
   final double? width;
+  final bool enabled;
 
   String get _display {
     if (valueId == null) return '';
@@ -73,26 +75,28 @@ class SearchableSingleSelect extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final child = InkWell(
-      onTap: () => _open(context),
+      onTap: enabled ? () => _open(context) : null,
       borderRadius: BorderRadius.circular(6),
       child: InputDecorator(
         decoration: _fieldDecoration(label: label, hint: hint).copyWith(
-          suffixIcon: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (allowClear && valueId != null)
-                IconButton(
-                  tooltip: 'Xoá chọn',
-                  icon: const Icon(Icons.clear, size: 18),
-                  onPressed: () => onChanged(null),
+          suffixIcon: !enabled
+              ? null
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (allowClear && valueId != null)
+                      IconButton(
+                        tooltip: 'Xoá chọn',
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () => onChanged(null),
+                      ),
+                    const Icon(Icons.search, size: 18),
+                    const SizedBox(width: 8),
+                  ],
                 ),
-              const Icon(Icons.search, size: 18),
-              const SizedBox(width: 8),
-            ],
-          ),
         ),
         child: Text(
-          _display.isEmpty ? hint : _display,
+          _display.isEmpty ? (enabled ? hint : '—') : _display,
           style: TextStyle(
             fontSize: 13,
             color: _display.isEmpty ? AppColors.webMutedFg : AppColors.webForeground,
@@ -115,6 +119,7 @@ class SearchableMultiSelect extends StatelessWidget {
     required this.onChanged,
     this.hint = 'Tìm và chọn nhân viên...',
     this.width,
+    this.enabled = true,
   });
 
   final String label;
@@ -123,6 +128,7 @@ class SearchableMultiSelect extends StatelessWidget {
   final ValueChanged<Set<String>> onChanged;
   final String hint;
   final double? width;
+  final bool enabled;
 
   Future<void> _open(BuildContext context) async {
     final selected = await showDialog<Set<String>>(
@@ -145,14 +151,16 @@ class SearchableMultiSelect extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         InkWell(
-          onTap: () => _open(context),
+          onTap: enabled ? () => _open(context) : null,
           borderRadius: BorderRadius.circular(6),
           child: InputDecorator(
             decoration: _fieldDecoration(label: label, hint: hint).copyWith(
-              suffixIcon: const Icon(Icons.person_search_outlined, size: 18),
+              suffixIcon: enabled ? const Icon(Icons.person_search_outlined, size: 18) : null,
             ),
             child: Text(
-              selectedOptions.isEmpty ? hint : '${selectedOptions.length} người đã chọn — bấm để sửa',
+              selectedOptions.isEmpty
+                  ? (enabled ? hint : '—')
+                  : (enabled ? '${selectedOptions.length} người đã chọn — bấm để sửa' : '${selectedOptions.length} người đã chọn'),
               style: TextStyle(
                 fontSize: 13,
                 color: selectedOptions.isEmpty ? AppColors.webMutedFg : AppColors.webForeground,
@@ -167,13 +175,15 @@ class SearchableMultiSelect extends StatelessWidget {
             runSpacing: 6,
             children: [
               for (final o in selectedOptions)
-                InputChip(
-                  label: Text(o.label, style: const TextStyle(fontSize: 12)),
-                  onDeleted: () {
-                    final next = {...valueIds}..remove(o.id);
-                    onChanged(next);
-                  },
-                ),
+                enabled
+                    ? InputChip(
+                        label: Text(o.label, style: const TextStyle(fontSize: 12)),
+                        onDeleted: () {
+                          final next = {...valueIds}..remove(o.id);
+                          onChanged(next);
+                        },
+                      )
+                    : Chip(label: Text(o.label, style: const TextStyle(fontSize: 12))),
             ],
           ),
         ],

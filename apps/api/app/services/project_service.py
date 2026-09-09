@@ -48,10 +48,8 @@ async def get_member_ids(session: AsyncSession, project_id: UUID) -> list[UUID]:
 
 
 async def user_can_access_project(session: AsyncSession, user: User, project: Project) -> bool:
-    """FR-3.5 — Admin/Giám đốc xem tất cả; TB chỉ DA được gán (manager/head/member)."""
+    """FR-3.5 — Admin/Giám đốc xem tất cả; TB/Nhân viên chỉ DA được gán (manager/head/member)."""
     if user.role in (Role.ADMIN, Role.DIRECTOR):
-        return True
-    if user.role != Role.DEPARTMENT_HEAD:
         return True
 
     if project.manager_id == user.id:
@@ -203,7 +201,7 @@ async def list_projects(
 ) -> list[Project]:
     query = select(Project)
 
-    if actor.role == Role.DEPARTMENT_HEAD:
+    if actor.role in (Role.DEPARTMENT_HEAD, Role.EMPLOYEE):
         head_ids = select(ProjectDepartmentHead.project_id).where(ProjectDepartmentHead.user_id == actor.id)
         member_ids = select(ProjectMember.project_id).where(ProjectMember.user_id == actor.id)
         query = query.where(

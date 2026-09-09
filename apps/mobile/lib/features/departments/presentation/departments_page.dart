@@ -28,6 +28,10 @@ class DepartmentsPage extends ConsumerWidget {
     final canManage = role == 'ADMIN' || role == 'DIRECTOR';
 
     return Scaffold(
+      // Trang này vừa nhúng trong sidebar Web (web_shell.dart, không pop được)
+      // vừa push riêng bên Mobile (more_page.dart) — AppBar tự ẩn nút back khi
+      // không pop được và tự hiện khi có, giống FinancePage/HrPage/DebtsPage.
+      appBar: AppBar(title: const Text('Bộ phận')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: ConstrainedBox(
@@ -39,14 +43,7 @@ class DepartmentsPage extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Bộ phận', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 4),
-                        Text('Quản lý bộ phận, Trưởng bộ phận phụ trách và nhân sự.', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg)),
-                      ],
-                    ),
+                    child: Text('Quản lý bộ phận, Trưởng bộ phận phụ trách và nhân sự.', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg)),
                   ),
                   if (canManage)
                     FilledButton.icon(

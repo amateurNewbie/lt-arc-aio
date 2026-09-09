@@ -3,11 +3,17 @@ import 'package:dio/dio.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/network/api_client.dart';
 
+// Tên phải khớp đúng PHẠM VI thực tế của permission group ở backend, không
+// chỉ khớp tên trang/sidebar — vd. DEBTS chỉ khoá "Phải trả" (payables.py),
+// không liên quan "Phải thu" (receivables.py chỉ theo role); PROJECT_CASHBOOK
+// chỉ khoá phần Chi (xem docstring FR-6.4 project_costs.py), phần Thu của dự
+// án nằm ở CONTRACTS_COLLECT. Đặt tên hẹp đúng phạm vi để tránh Admin cấp
+// nhầm quyền tưởng bao trùm cả 2 chiều.
 const _permissionGroupLabels = {
-  'PROJECT_CASHBOOK': 'Sổ thu chi dự án',
+  'PROJECT_CASHBOOK': 'Ghi chi phí dự án',
   'OVERHEAD_ALLOCATE': 'Phân bổ chi phí chung',
   'FUNDS': 'Quỹ & dòng tiền',
-  'DEBTS': 'Công nợ',
+  'DEBTS': 'Công nợ phải trả',
   'CONTRACTS_COLLECT': 'Thu tiền hợp đồng',
   'WORKDAYS_ENTRY': 'Nhập số công',
 };

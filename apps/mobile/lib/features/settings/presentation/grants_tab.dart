@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/api/api_exception.dart';
+import '../../auth/application/auth_provider.dart';
 import '../../projects/application/project_provider.dart';
 import '../../users/application/user_provider.dart';
 import '../../users/data/user_repository.dart';
 import '../application/permission_grant_provider.dart';
 import '../data/permission_grant_repository.dart';
 import '../../../shared/widgets/app_toast.dart';
+
+bool _canManageGrants(String? role) => role == 'ADMIN' || role == 'DIRECTOR';
 
 /// FR-1.7/1.8 — cấp/thu hồi quyền bổ sung theo người dùng.
 class GrantsTab extends ConsumerStatefulWidget {
@@ -23,6 +26,16 @@ class _GrantsTabState extends ConsumerState<GrantsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final me = ref.watch(authProvider).value;
+    if (!_canManageGrants(me?.role)) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text('Chỉ Quản trị và Giám đốc được cấp/thu hồi quyền bổ sung theo người dùng.'),
+        ),
+      );
+    }
+
     final usersAsync = ref.watch(userListProvider);
 
     return Column(
@@ -106,7 +119,18 @@ class _AddGrantSheetState extends ConsumerState<_AddGrantSheet> {
   String _group = permissionGroups.first;
   bool _allProjects = true;
   final Set<String> _selectedProjectIds = {};
+  DateTime? _expiresAt;
   bool _saving = false;
+
+  Future<void> _pickExpiresAt() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _expiresAt ?? DateTime.now().add(const Duration(days: 30)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+    );
+    if (picked != null) setState(() => _expiresAt = picked);
+  }
 
   Future<void> _submit() async {
     setState(() => _saving = true);
@@ -116,6 +140,7 @@ class _AddGrantSheetState extends ConsumerState<_AddGrantSheet> {
             widget.userId,
             permissionGroup: _group,
             projectIds: _allProjects ? null : _selectedProjectIds.toList(),
+            expiresAt: _expiresAt,
           );
       close.success('Đã thêm phân quyền');
     } on ApiException catch (e) {
@@ -165,7 +190,21 @@ class _AddGrantSheetState extends ConsumerState<_AddGrantSheet> {
               loading: () => const LinearProgressIndicator(),
               error: (e, _) => Text('Lỗi tải dự án: $e'),
             ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Hạn dùng'),
+            subtitle: Text(_expiresAt != null ? DateFormat('dd/MM/yyyy').format(_expiresAt!) : 'Không giới hạn (vĩnh viễn)'),
+            trailing: Wrap(
+              spacing: 4,
+              children: [
+                if (_expiresAt != null)
+                  IconButton(icon: const Icon(Icons.clear), tooltip: 'Bỏ hạn dùng', onPressed: () => setState(() => _expiresAt = null)),
+                IconButton(icon: const Icon(Icons.calendar_month_outlined), tooltip: 'Chọn ngày hết hạn', onPressed: _pickExpiresAt),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
           FilledButton(
             onPressed: _saving ? null : _submit,
             child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Cấp quyền'),

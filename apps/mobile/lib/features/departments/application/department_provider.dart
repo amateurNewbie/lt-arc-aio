@@ -9,7 +9,13 @@ part 'department_provider.g.dart';
 DepartmentRepository departmentRepository(Ref ref) => DepartmentRepository(ref.watch(apiClientProvider));
 
 @riverpod
-Future<List<Department>> departmentList(Ref ref) => ref.watch(departmentRepositoryProvider).list();
+Future<List<Department>> departmentList(Ref ref) async {
+  // GET /api/departments chỉ ADMIN/DIRECTOR/DEPARTMENT_HEAD gọi được ở backend
+  // — Nhân viên luôn 403; trả rỗng ngay từ đầu (xem lý do ở userListProvider).
+  final role = ref.watch(authProvider).value?.role;
+  if (role != 'ADMIN' && role != 'DIRECTOR' && role != 'DEPARTMENT_HEAD') return const [];
+  return ref.watch(departmentRepositoryProvider).list();
+}
 
 /// keepAlive: Actions chỉ được `ref.read` từ dialog — autoDispose sẽ dispose
 /// giữa `await` API rồi nổ khi `invalidate` (Ref after disposed).

@@ -15,13 +15,19 @@ Future<List<ProjectPnl>> profitLossReport(
   String? projectId,
   DateTime? dateFrom,
   DateTime? dateTo,
-}) =>
-    ref.watch(reportsRepositoryProvider).profitLoss(
-          category: category,
-          projectId: projectId,
-          dateFrom: dateFrom,
-          dateTo: dateTo,
-        );
+}) async {
+  // GET /api/reports/profit-loss chỉ ADMIN/DIRECTOR gọi được — trang Dự án
+  // (nơi gọi provider này để hiện lãi/lỗ tạm tính) vẫn mở cho mọi role, nên
+  // không thể để cả trang lỗi chỉ vì báo cáo tài chính bị chặn.
+  final role = ref.watch(authProvider).value?.role;
+  if (role != 'ADMIN' && role != 'DIRECTOR') return const [];
+  return ref.watch(reportsRepositoryProvider).profitLoss(
+        category: category,
+        projectId: projectId,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+      );
+}
 
 @riverpod
 Future<CashflowReport> cashflowReport(Ref ref, {required int year, required int month}) =>

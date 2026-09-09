@@ -9,7 +9,15 @@ part 'user_provider.g.dart';
 UserRepository userRepository(Ref ref) => UserRepository(ref.watch(apiClientProvider));
 
 @riverpod
-Future<List<UserSummary>> userList(Ref ref) => ref.watch(userRepositoryProvider).list();
+Future<List<UserSummary>> userList(Ref ref) async {
+  // GET /api/users chỉ ADMIN/DIRECTOR gọi được ở backend — role khác sẽ luôn
+  // 403; trả rỗng ngay từ đầu thay vì gọi API rồi nhận lỗi, vì nhiều trang mà
+  // Nhân viên/Trưởng BP vẫn xem được (Leads, Dự án...) chỉ dùng danh sách này
+  // để tra tên hiển thị, không nên làm hỏng cả trang vì 1 API phụ bị chặn.
+  final role = ref.watch(authProvider).value?.role;
+  if (role != 'ADMIN' && role != 'DIRECTOR') return const [];
+  return ref.watch(userRepositoryProvider).list();
+}
 
 /// keepAlive: Actions chỉ được `ref.read` từ dialog — autoDispose sẽ dispose
 /// giữa `await` API rồi nổ khi `invalidate` (Ref after disposed).

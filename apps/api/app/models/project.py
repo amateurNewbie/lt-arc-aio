@@ -32,17 +32,16 @@ def default_stage_progress(keys: list[str] | None = None) -> dict:
 
 
 def normalize_stage_progress(raw: dict | None, template_keys: list[str] | None = None) -> dict:
-    """Chuẩn hoá JSON giai đoạn — giữ mọi key có trong raw hoặc template."""
-    if not raw and template_keys:
-        return default_stage_progress(template_keys)
+    """Chuẩn hoá JSON giai đoạn — giữ mọi key có trong raw, backfill phần còn
+    thiếu theo template_keys (mặc định PROJECT_STAGE_KEYS khi không truyền)."""
+    base_keys = list(template_keys) if template_keys is not None else list(PROJECT_STAGE_KEYS)
     if not raw:
-        return default_stage_progress()
+        return default_stage_progress(base_keys)
 
     keys = list(raw.keys())
-    if template_keys:
-        for k in template_keys:
-            if k not in keys:
-                keys.append(k)
+    for k in base_keys:
+        if k not in keys:
+            keys.append(k)
 
     result: dict = {}
     for key in keys:

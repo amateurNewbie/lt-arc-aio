@@ -47,6 +47,6 @@ async def test_create_project_with_heads_members_and_stages(session: AsyncSessio
 
 def test_normalize_stage_progress_legacy_ints() -> None:
     normalized = normalize_stage_progress({"design": 100, "permit": 50})
-    assert normalized["design"] == {"progress": 100, "deadline": None}
+    assert normalized["design"] == {"progress": 100, "deadline": None, "name": "Thiết kế"}
     assert normalized["permit"]["progress"] == 50
     assert normalized["handover"]["progress"] == 0

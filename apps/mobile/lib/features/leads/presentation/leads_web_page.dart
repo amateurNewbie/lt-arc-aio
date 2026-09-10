@@ -255,7 +255,7 @@ class _CreateLeadCardState extends ConsumerState<_CreateLeadCard> {
       _clearForm();
       showAppToast(context, 'Đã lưu khách hàng tiềm năng');
       // Gọi lại API danh sách — lead mới nhất lên đầu (order created_at desc).
-      await ref.refresh(leadListProvider.future);
+      ref.invalidate(leadListProvider);
     } on ApiException catch (e) {
       if (mounted) showAppToast(context, e.message, error: true);
     } catch (e) {

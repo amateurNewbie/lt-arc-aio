@@ -116,9 +116,9 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
         children: [
           Container(
             decoration: BoxDecoration(
-              color: AppColors.webCardBg,
+              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [context.colors.cardGradTop, context.colors.cardGradBottom]),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.webBorder),
+              border: Border.all(color: context.colors.border),
             ),
             padding: const EdgeInsets.all(12),
             child: Wrap(
@@ -198,20 +198,24 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
                 children: [
                   ResponsiveStatRow(
                     children: [
-                      _StatCard(icon: Icons.trending_up, color: AppColors.webSuccess, value: '${currency.format(totalRevenue)} ₫', label: 'Tổng doanh thu đã thu'),
-                      _StatCard(icon: Icons.trending_down, color: AppColors.webWarning, value: '${currency.format(totalCost)} ₫', label: 'Tổng chi phí đã chi'),
+                      _StatCard(icon: Icons.trending_up, color: context.colors.success, value: '${currency.format(totalRevenue)} ₫', label: 'Tổng doanh thu đã thu'),
+                      _StatCard(icon: Icons.trending_down, color: context.colors.warning, value: '${currency.format(totalCost)} ₫', label: 'Tổng chi phí đã chi'),
                       _StatCard(
                         icon: Icons.account_balance_outlined,
-                        color: totalProfit >= 0 ? AppColors.webSuccess : AppColors.webDestructive,
+                        color: totalProfit >= 0 ? context.colors.success : context.colors.destructive,
                         value: '${totalProfit >= 0 ? '+' : ''}${currency.format(totalProfit)} ₫',
                         label: 'Lãi/Lỗ ròng',
                       ),
-                      _StatCard(icon: Icons.hourglass_empty, color: AppColors.webMutedFg, value: '${currency.format(totalReceivable)} ₫', label: 'Công nợ phải thu'),
+                      _StatCard(icon: Icons.hourglass_empty, color: context.colors.mutedFg, value: '${currency.format(totalReceivable)} ₫', label: 'Công nợ phải thu'),
                     ],
                   ),
                   const SizedBox(height: 20),
                   Container(
-                    decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [context.colors.cardGradTop, context.colors.cardGradBottom]),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: context.colors.border),
+                    ),
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,7 +224,7 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
                         const SizedBox(height: 4),
                         Text(
                           'Doanh thu đã thu − Chi phí trực tiếp − Chi phí chung phân bổ = Lãi/Lỗ, kèm biên lợi nhuận.',
-                          style: TextStyle(fontSize: 12, color: AppColors.webMutedFg),
+                          style: TextStyle(fontSize: 12, color: context.colors.mutedFg),
                         ),
                         const SizedBox(height: 12),
                         if (filtered.isEmpty)
@@ -255,11 +259,11 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
                                     DataCell(Text('${currency.format(r.totalCost)} ₫', style: const TextStyle(fontSize: 13))),
                                     DataCell(Text(
                                       '${r.profit >= 0 ? '+' : ''}${currency.format(r.profit)} ₫',
-                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: r.profit >= 0 ? AppColors.webSuccess : AppColors.webDestructive),
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: r.profit >= 0 ? context.colors.success : context.colors.destructive),
                                     )),
                                     DataCell(Text(
                                       '${r.marginPercent.toStringAsFixed(0)}%',
-                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: r.profit >= 0 ? AppColors.webSuccess : AppColors.webDestructive),
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: r.profit >= 0 ? context.colors.success : context.colors.destructive),
                                     )),
                                   ]),
                               ],
@@ -291,7 +295,11 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [context.colors.cardGradTop, context.colors.cardGradBottom]),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: context.colors.border),
+      ),
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
@@ -308,7 +316,7 @@ class _StatCard extends StatelessWidget {
               children: [
                 Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
-                Text(label, style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+                Text(label, style: TextStyle(fontSize: 12, color: context.colors.mutedFg)),
               ],
             ),
           ),

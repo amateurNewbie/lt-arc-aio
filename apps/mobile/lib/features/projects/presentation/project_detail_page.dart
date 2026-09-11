@@ -76,6 +76,7 @@ class _OverviewTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final pnlAsync = ref.watch(profitLossReportProvider());
     final receivablesAsync = ref.watch(receivableListProvider);
 
@@ -102,21 +103,25 @@ class _OverviewTab extends ConsumerWidget {
               _MiniStat(
                 label: 'Lãi/Lỗ',
                 value: pnl != null ? formatCompactVnd(pnl.profit, showSign: true) : '—',
-                valueColor: pnl != null ? (pnl.profit >= 0 ? AppColors.webSuccess : AppColors.webDestructive) : null,
+                valueColor: pnl != null ? (pnl.profit >= 0 ? c.success : c.destructive) : null,
               ),
               _MiniStat(label: 'Công nợ phải thu', value: formatCompactVnd(receivable)),
             ],
           ),
           const SizedBox(height: 20),
           Container(
-            decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: c.border),
+            ),
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Tiến độ theo giai đoạn', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
-                Text('Theo dõi chi tiết tiến độ thi công & thiết kế của dự án.', style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+                Text('Theo dõi chi tiết tiến độ thi công & thiết kế của dự án.', style: TextStyle(fontSize: 12, color: c.mutedFg)),
                 const SizedBox(height: 16),
                 if (project.stageProgress == null || project.stageProgress!.isEmpty)
                   const Text('Chưa có dữ liệu tiến độ theo giai đoạn cho dự án này.')
@@ -141,7 +146,7 @@ class _OverviewTab extends ConsumerWidget {
                                     overdue ? '${stage.value.progress}% · trễ kế hoạch' : '${stage.value.progress}%',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: overdue ? AppColors.webDestructive : AppColors.webMutedFg,
+                                      color: overdue ? c.destructive : c.mutedFg,
                                       fontWeight: overdue ? FontWeight.w600 : null,
                                     ),
                                   );
@@ -155,15 +160,15 @@ class _OverviewTab extends ConsumerWidget {
                             child: LinearProgressIndicator(
                               value: stage.value.progress / 100,
                               minHeight: 6,
-                              backgroundColor: AppColors.webMutedBg,
+                              backgroundColor: c.muted,
                               color: stage.value.progress >= 100
-                                  ? AppColors.webSuccess
+                                  ? c.success
                                   : (stage.value.deadline != null &&
                                           stage.value.progress < 100 &&
                                           DateTime(stage.value.deadline!.year, stage.value.deadline!.month, stage.value.deadline!.day)
                                               .isBefore(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day))
-                                      ? AppColors.webDestructive
-                                      : AppColors.gold),
+                                      ? c.destructive
+                                      : c.gold),
                             ),
                           ),
                         ],
@@ -187,15 +192,20 @@ class _MiniStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Container(
-        decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: c.border),
+        ),
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(fontSize: 11, color: AppColors.webMutedFg)),
+            Text(label, style: TextStyle(fontSize: 11, color: c.mutedFg)),
             const SizedBox(height: 4),
             Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: valueColor), overflow: TextOverflow.ellipsis),
           ],

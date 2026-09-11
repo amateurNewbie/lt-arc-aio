@@ -18,12 +18,15 @@ WebBadgeVariant _categoryVariant(ProjectCategory c) => switch (c) {
       ProjectCategory.design => WebBadgeVariant.outline,
     };
 
-InputDecoration _webSelectDecoration() => InputDecoration(
-      isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: AppColors.webBorder)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: AppColors.webBorder)),
-    );
+InputDecoration _webSelectDecoration(BuildContext context) {
+  final c = context.colors;
+  return InputDecoration(
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: c.border)),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: c.border)),
+  );
+}
 
 /// Trang "Dự án" bản Web — bám `LT-ARC-Web-UI_1.html` (`data-if="isProjects"`):
 /// bộ lọc + lưới thẻ dự án 3 cột kèm tiến độ và lãi/lỗ tạm tính (từ P&L thật).
@@ -32,6 +35,7 @@ class ProjectsWebPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final filter = ref.watch(projectFilterProvider);
     final projectsAsync = ref.watch(projectListProvider(status: filter.status, category: filter.category, search: filter.search));
     final pnlAsync = ref.watch(profitLossReportProvider());
@@ -54,14 +58,14 @@ class ProjectsWebPage extends ConsumerWidget {
                       children: [
                         Text('Dự án', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 4),
-                        Text('Theo dõi tiến độ và lợi nhuận từ ý tưởng đến bàn giao.', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg)),
+                        Text('Theo dõi tiến độ và lợi nhuận từ ý tưởng đến bàn giao.', style: TextStyle(fontSize: 13, color: c.mutedFg)),
                       ],
                     ),
                   ),
                   if (canManage)
                     FilledButton.icon(
                       onPressed: () => ref.read(projectPaneProvider.notifier).showCreate(),
-                      style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                      style: FilledButton.styleFrom(backgroundColor: c.fg, foregroundColor: Colors.white),
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('Tạo dự án'),
                     ),
@@ -72,7 +76,7 @@ class ProjectsWebPage extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: TextField(
-                      decoration: _webSelectDecoration().copyWith(hintText: 'Tìm theo tên, mã hoặc khách hàng...', prefixIcon: const Icon(Icons.search, size: 18)),
+                      decoration: _webSelectDecoration(context).copyWith(hintText: 'Tìm theo tên, mã hoặc khách hàng...', prefixIcon: const Icon(Icons.search, size: 18)),
                       onChanged: (v) => ref.read(projectFilterProvider.notifier).setSearch(v),
                     ),
                   ),
@@ -81,7 +85,7 @@ class ProjectsWebPage extends ConsumerWidget {
                     width: 180,
                     child: DropdownButtonFormField<ProjectCategory?>(
                       initialValue: filter.category,
-                      decoration: _webSelectDecoration(),
+                      decoration: _webSelectDecoration(context),
                       items: [
                         const DropdownMenuItem(value: null, child: Text('Phân loại: Tất cả', style: TextStyle(fontSize: 13))),
                         for (final c in ProjectCategory.values) DropdownMenuItem(value: c, child: Text(c.label, style: const TextStyle(fontSize: 13))),
@@ -94,7 +98,7 @@ class ProjectsWebPage extends ConsumerWidget {
                     width: 180,
                     child: DropdownButtonFormField<ProjectStatus?>(
                       initialValue: filter.status,
-                      decoration: _webSelectDecoration(),
+                      decoration: _webSelectDecoration(context),
                       items: [
                         const DropdownMenuItem(value: null, child: Text('Trạng thái: Tất cả', style: TextStyle(fontSize: 13))),
                         for (final s in ProjectStatus.values) DropdownMenuItem(value: s, child: Text(s.label, style: const TextStyle(fontSize: 13))),
@@ -134,11 +138,16 @@ class _ProjectCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final currency = NumberFormat.decimalPattern('vi');
     final profit = pnl?.profit;
 
     return Container(
-      decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: c.border),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () => ref.read(projectPaneProvider.notifier).showDetail(project.id),
@@ -155,7 +164,7 @@ class _ProjectCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(project.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                        Text(project.code, style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+                        Text(project.code, style: TextStyle(fontSize: 12, color: c.mutedFg)),
                       ],
                     ),
                   ),
@@ -170,14 +179,14 @@ class _ProjectCard extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Text('KH: ${project.client}', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg)),
+              Text('KH: ${project.client}', style: TextStyle(fontSize: 13, color: c.mutedFg)),
               const SizedBox(height: 10),
-              ClipRRect(borderRadius: BorderRadius.circular(3), child: LinearProgressIndicator(value: project.progress / 100, minHeight: 6, backgroundColor: AppColors.webMutedBg, color: AppColors.gold)),
+              ClipRRect(borderRadius: BorderRadius.circular(3), child: LinearProgressIndicator(value: project.progress / 100, minHeight: 6, backgroundColor: c.muted, color: c.gold)),
               const SizedBox(height: 6),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Tiến độ ${project.progress}%', style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+                  Text('Tiến độ ${project.progress}%', style: TextStyle(fontSize: 12, color: c.mutedFg)),
                   if (project.budget != null) Text('${currency.format(pnl?.revenue ?? 0)} / ${currency.format(project.budget)} ₫', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
                 ],
               ),
@@ -185,10 +194,10 @@ class _ProjectCard extends ConsumerWidget {
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.only(top: 10),
-                  decoration: BoxDecoration(border: Border(top: BorderSide(color: AppColors.webBorder))),
+                  decoration: BoxDecoration(border: Border(top: BorderSide(color: c.border))),
                   child: Text(
                     '${profit >= 0 ? 'Lãi' : 'Lỗ'} tạm tính ${profit >= 0 ? '+' : ''}${currency.format(profit)} ₫',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: profit >= 0 ? AppColors.webSuccess : AppColors.webDestructive),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: profit >= 0 ? c.success : c.destructive),
                   ),
                 ),
               ],

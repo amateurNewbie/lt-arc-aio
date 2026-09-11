@@ -91,7 +91,7 @@ class _RolePreviewTabState extends ConsumerState<RolePreviewTab> {
           const SizedBox(height: 4),
           Text(
             'Tóm tắt nhanh 4 cấp vai trò trong hệ thống — Trưởng bộ phận chỉ thấy dữ liệu tài chính của dự án mình phụ trách.',
-            style: TextStyle(fontSize: 13, color: AppColors.webMutedFg),
+            style: TextStyle(fontSize: 13, color: context.colors.mutedFg),
           ),
           const SizedBox(height: 12),
           for (final r in _roleSummary)

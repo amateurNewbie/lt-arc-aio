@@ -107,7 +107,7 @@ class _RoleDefaultsTabState extends ConsumerState<RoleDefaultsTab> {
                     child: Text(
                       'Bật/tắt 6 nhóm quyền FR-1.7 theo từng vai trò. '
                       'Quyền bổ sung theo từng user nằm ở tab bên cạnh.',
-                      style: TextStyle(fontSize: 13, color: AppColors.webMutedFg),
+                      style: TextStyle(fontSize: 13, color: context.colors.mutedFg),
                     ),
                   ),
                   FilledButton.icon(
@@ -126,7 +126,7 @@ class _RoleDefaultsTabState extends ConsumerState<RoleDefaultsTab> {
                 scrollDirection: Axis.horizontal,
                 child: SingleChildScrollView(
                   child: DataTable(
-                    headingRowColor: WidgetStatePropertyAll(AppColors.webCardBg),
+                    headingRowColor: WidgetStatePropertyAll(context.colors.card),
                     columns: [
                       const DataColumn(label: Text('Vai trò')),
                       ...permissionGroups.map(

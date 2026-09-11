@@ -55,6 +55,7 @@ class _TaskProgressDialogState extends ConsumerState<_TaskProgressDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return AlertDialog(
       title: Text(widget.task.title),
       content: SizedBox(
@@ -63,7 +64,7 @@ class _TaskProgressDialogState extends ConsumerState<_TaskProgressDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Cập nhật tiến độ hoàn thành', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg)),
+            Text('Cập nhật tiến độ hoàn thành', style: TextStyle(fontSize: 13, color: c.mutedFg)),
             const SizedBox(height: 16),
             Center(
               child: Text(
@@ -94,7 +95,7 @@ class _TaskProgressDialogState extends ConsumerState<_TaskProgressDialog> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.webMutedBg,
+                color: c.muted,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(_hint, style: const TextStyle(fontSize: 12)),

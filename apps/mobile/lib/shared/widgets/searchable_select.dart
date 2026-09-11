@@ -13,15 +13,18 @@ class SearchableOption {
   String get haystack => '${label.toLowerCase()} ${(searchText ?? '').toLowerCase()}';
 }
 
-InputDecoration _fieldDecoration({required String label, String? hint}) => InputDecoration(
-      labelText: label,
-      hintText: hint,
-      isDense: true,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.webBorder)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.webBorder)),
-      filled: true,
-      fillColor: Colors.white,
-    );
+InputDecoration _fieldDecoration(BuildContext context, {required String label, String? hint}) {
+  final c = context.colors;
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    isDense: true,
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: c.border)),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: c.border)),
+    filled: true,
+    fillColor: c.muted,
+  );
+}
 
 /// Select 1 giá trị, tìm theo tên trong popup.
 class SearchableSingleSelect extends StatelessWidget {
@@ -74,11 +77,12 @@ class SearchableSingleSelect extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final child = InkWell(
       onTap: enabled ? () => _open(context) : null,
       borderRadius: BorderRadius.circular(6),
       child: InputDecorator(
-        decoration: _fieldDecoration(label: label, hint: hint).copyWith(
+        decoration: _fieldDecoration(context, label: label, hint: hint).copyWith(
           suffixIcon: !enabled
               ? null
               : Row(
@@ -99,7 +103,7 @@ class SearchableSingleSelect extends StatelessWidget {
           _display.isEmpty ? (enabled ? hint : '—') : _display,
           style: TextStyle(
             fontSize: 13,
-            color: _display.isEmpty ? AppColors.webMutedFg : AppColors.webForeground,
+            color: _display.isEmpty ? c.mutedFg : c.fg,
           ),
           overflow: TextOverflow.ellipsis,
         ),
@@ -146,6 +150,7 @@ class SearchableMultiSelect extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final selectedOptions = options.where((o) => valueIds.contains(o.id)).toList();
     final child = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,7 +159,7 @@ class SearchableMultiSelect extends StatelessWidget {
           onTap: enabled ? () => _open(context) : null,
           borderRadius: BorderRadius.circular(6),
           child: InputDecorator(
-            decoration: _fieldDecoration(label: label, hint: hint).copyWith(
+            decoration: _fieldDecoration(context, label: label, hint: hint).copyWith(
               suffixIcon: enabled ? const Icon(Icons.person_search_outlined, size: 18) : null,
             ),
             child: Text(
@@ -163,7 +168,7 @@ class SearchableMultiSelect extends StatelessWidget {
                   : (enabled ? '${selectedOptions.length} người đã chọn — bấm để sửa' : '${selectedOptions.length} người đã chọn'),
               style: TextStyle(
                 fontSize: 13,
-                color: selectedOptions.isEmpty ? AppColors.webMutedFg : AppColors.webForeground,
+                color: selectedOptions.isEmpty ? c.mutedFg : c.fg,
               ),
             ),
           ),
@@ -268,7 +273,7 @@ class _SearchPickDialogState extends State<_SearchPickDialog> {
             const SizedBox(height: 10),
             Expanded(
               child: filtered.isEmpty
-                  ? const Center(child: Text('Không tìm thấy', style: TextStyle(color: AppColors.webMutedFg)))
+                  ? Center(child: Text('Không tìm thấy', style: TextStyle(color: context.colors.mutedFg)))
                   : ListView.builder(
                       itemCount: filtered.length,
                       itemBuilder: (context, index) {

@@ -20,13 +20,16 @@ WebBadgeVariant _categoryVariant(ProjectCategory c) => switch (c) {
       ProjectCategory.design => WebBadgeVariant.outline,
     };
 
-/// Trang "Tổng quan" bản Web — bám `LT-ARC-Web-UI_1.html` (`data-if="isDashboard"`):
-/// 4 thẻ KPI, "Dự án gần đây" + "Hoạt động gần đây" cạnh nhau, bảng "Công việc trễ hạn".
+/// Trang "Tổng quan" bản Web — bám `LT-ARC-Web-UI_3.html` (`data-if="isDashboard"`):
+/// tông than/kem/vàng đồng, thẻ có độ bóng, 4 thẻ KPI, "Dự án gần đây" +
+/// "Hoạt động gần đây" cạnh nhau, bảng "Công việc trễ hạn". Màu đọc qua
+/// [LtArcColors] — tự đổi sáng/tối theo `webThemeModeProvider`.
 class DashboardWebPage extends ConsumerWidget {
   const DashboardWebPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final projectsAsync = ref.watch(projectListProvider());
     final tasksAsync = ref.watch(taskListProvider());
     final activitiesAsync = ref.watch(recentActivitiesProvider);
@@ -40,6 +43,7 @@ class DashboardWebPage extends ConsumerWidget {
     final projects = projectsAsync.value ?? const <Project>[];
 
     return Scaffold(
+      backgroundColor: c.bg,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: ConstrainedBox(
@@ -47,24 +51,24 @@ class DashboardWebPage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Tổng quan', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+              Text('Tổng quan', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: c.goldBright)),
               const SizedBox(height: 4),
-              Text('Toàn cảnh dự án, công việc và tài chính studio.', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg)),
+              Text('Toàn cảnh dự án, công việc và tài chính studio.', style: TextStyle(fontSize: 13, color: c.mutedFg)),
               const SizedBox(height: 20),
               Row(
                 children: [
-                  Expanded(child: _StatCard(icon: Icons.apartment_outlined, iconColor: AppColors.gold, value: '${projects.length}', label: 'Dự án đang chạy')),
+                  Expanded(child: _StatCard(icon: Icons.apartment_outlined, iconColor: c.gold, value: '${projects.length}', label: 'Dự án đang chạy')),
                   const SizedBox(width: 12),
-                  Expanded(child: _StatCard(icon: Icons.checklist_outlined, iconColor: AppColors.gold, value: '$doingTasks', label: 'Việc đang làm')),
+                  Expanded(child: _StatCard(icon: Icons.checklist_outlined, iconColor: c.gold, value: '$doingTasks', label: 'Việc đang làm')),
                   const SizedBox(width: 12),
-                  Expanded(child: _StatCard(icon: Icons.access_time, iconColor: AppColors.webWarning, value: '${overdueTasks.length}', label: 'Việc quá hạn')),
+                  Expanded(child: _StatCard(icon: Icons.access_time, iconColor: c.warning, value: '${overdueTasks.length}', label: 'Việc quá hạn')),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _StatCard(
                       icon: Icons.trending_up,
-                      iconColor: AppColors.webSuccess,
+                      iconColor: c.success,
                       value: '${totalProfit >= 0 ? '+' : ''}${currency.format(totalProfit)} ₫',
-                      valueColor: AppColors.webSuccess,
+                      valueColor: c.success,
                       label: 'Lãi/lỗ tạm tính',
                     ),
                   ),
@@ -80,28 +84,45 @@ class DashboardWebPage extends ConsumerWidget {
                       child: projectsAsync.when(
                         data: (list) {
                           final recent = list.take(5).toList();
-                          if (recent.isEmpty) return const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Text('Chưa có dự án nào'));
+                          if (recent.isEmpty) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              child: Text('Chưa có dự án nào', style: TextStyle(color: c.mutedFg)),
+                            );
+                          }
                           return Column(
                             children: [
                               for (final p in recent)
-                                ListTile(
-                                  dense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                  title: Text(p.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                                  subtitle: Text('${p.code} · ${p.client}', style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
-                                  trailing: Wrap(
-                                    spacing: 6,
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 9),
+                                  child: Row(
                                     children: [
-                                      WebBadge(p.category.label, variant: _categoryVariant(p.category)),
-                                      WebBadge(p.status.label, variant: WebBadgeVariant.secondary),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(p.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: c.fg)),
+                                            const SizedBox(height: 2),
+                                            Text('${p.code} · ${p.client}', style: TextStyle(fontSize: 12, color: c.mutedFg)),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Wrap(
+                                        spacing: 6,
+                                        children: [
+                                          WebBadge(p.category.label, variant: _categoryVariant(p.category)),
+                                          WebBadge(p.status.label, variant: WebBadgeVariant.secondary),
+                                        ],
+                                      ),
                                     ],
                                   ),
                                 ),
                             ],
                           );
                         },
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (e, _) => Text('Lỗi tải dữ liệu: $e'),
+                        loading: () => Center(child: Padding(padding: const EdgeInsets.all(16), child: CircularProgressIndicator(color: c.gold))),
+                        error: (e, _) => Text('Lỗi tải dữ liệu: $e', style: TextStyle(color: c.destructive)),
                       ),
                     ),
                   ),
@@ -109,9 +130,15 @@ class DashboardWebPage extends ConsumerWidget {
                   Expanded(
                     child: _WebCard(
                       title: 'Hoạt động gần đây',
+                      icon: Icons.bolt_outlined,
                       child: activitiesAsync.when(
                         data: (activities) {
-                          if (activities.isEmpty) return const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Text('Chưa có hoạt động nào'));
+                          if (activities.isEmpty) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              child: Text('Chưa có hoạt động nào', style: TextStyle(color: c.mutedFg)),
+                            );
+                          }
                           return Column(
                             children: [
                               for (final a in activities.take(6))
@@ -120,17 +147,20 @@ class DashboardWebPage extends ConsumerWidget {
                                   child: Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Expanded(child: Text(a.title, style: const TextStyle(fontSize: 13))),
+                                      Expanded(child: Text(a.title, style: TextStyle(fontSize: 13, color: c.fg))),
                                       const SizedBox(width: 8),
-                                      Text(DateFormat('dd/MM HH:mm').format(a.createdAt.toLocal()), style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+                                      Text(
+                                        DateFormat('dd/MM HH:mm').format(a.createdAt.toLocal()),
+                                        style: TextStyle(fontSize: 12, color: c.mutedFg),
+                                      ),
                                     ],
                                   ),
                                 ),
                             ],
                           );
                         },
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (e, _) => Text('Lỗi tải hoạt động: $e'),
+                        loading: () => Center(child: Padding(padding: const EdgeInsets.all(16), child: CircularProgressIndicator(color: c.gold))),
+                        error: (e, _) => Text('Lỗi tải hoạt động: $e', style: TextStyle(color: c.destructive)),
                       ),
                     ),
                   ),
@@ -146,6 +176,8 @@ class DashboardWebPage extends ConsumerWidget {
   }
 }
 
+/// Khung thẻ có độ bóng: viền đồng mờ, nền gradient than, sheen mờ ở mép trên —
+/// tương ứng `.card` trong LT-ARC-Web-UI_3.html.
 class _WebCard extends StatelessWidget {
   const _WebCard({required this.title, required this.child, this.titleColor, this.icon});
 
@@ -156,9 +188,15 @@ class _WebCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: c.border),
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
+        boxShadow: [BoxShadow(color: c.shadowAmbient, blurRadius: 24, offset: const Offset(0, 12))],
+      ),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,8 +204,8 @@ class _WebCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              if (icon != null) ...[Icon(icon, size: 16, color: titleColor ?? AppColors.webForeground), const SizedBox(width: 8)],
-              Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: titleColor)),
+              if (icon != null) ...[Icon(icon, size: 16, color: titleColor ?? c.gold), const SizedBox(width: 8)],
+              Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: titleColor ?? c.fg)),
             ],
           ),
           const SizedBox(height: 12),
@@ -189,25 +227,31 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
-      decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: c.border),
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
+        boxShadow: [BoxShadow(color: c.shadowAmbient, blurRadius: 24, offset: const Offset(0, 12))],
+      ),
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(4)),
-            child: Icon(icon, size: 20, color: iconColor),
+            decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(6)),
+            child: Icon(icon, size: 19, color: iconColor),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: valueColor), overflow: TextOverflow.ellipsis),
+                Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: valueColor ?? c.fg), overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
-                Text(label.toUpperCase(), style: TextStyle(fontSize: 10.5, letterSpacing: 0.5, color: AppColors.webMutedFg)),
+                Text(label.toUpperCase(), style: TextStyle(fontSize: 10.5, letterSpacing: 0.5, color: c.mutedFg)),
               ],
             ),
           ),
@@ -224,6 +268,7 @@ class _OverdueTasksCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final projectsAsync = ref.watch(projectListProvider());
     final departmentsAsync = ref.watch(departmentListProvider);
     final usersAsync = ref.watch(userListProvider);
@@ -236,9 +281,9 @@ class _OverdueTasksCard extends ConsumerWidget {
     return _WebCard(
       title: 'Công việc trễ hạn',
       icon: Icons.warning_amber_rounded,
-      titleColor: AppColors.webWarning,
+      titleColor: c.warning,
       child: tasks.isEmpty
-          ? const Text('Không có công việc quá hạn')
+          ? Text('Không có công việc quá hạn', style: TextStyle(color: c.mutedFg))
           : SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
@@ -246,22 +291,22 @@ class _OverdueTasksCard extends ConsumerWidget {
                 dataRowMinHeight: 40,
                 dataRowMaxHeight: 48,
                 columns: const [
-                  DataColumn(label: Text('CÔNG VIỆC', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
-                  DataColumn(label: Text('DỰ ÁN', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
-                  DataColumn(label: Text('BỘ PHẬN', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
-                  DataColumn(label: Text('NGƯỜI PHỤ TRÁCH', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
-                  DataColumn(label: Text('TRỄ', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600))),
+                  DataColumn(label: Text('CÔNG VIỆC')),
+                  DataColumn(label: Text('DỰ ÁN')),
+                  DataColumn(label: Text('BỘ PHẬN')),
+                  DataColumn(label: Text('NGƯỜI PHỤ TRÁCH')),
+                  DataColumn(label: Text('TRỄ')),
                 ],
                 rows: [
                   for (final t in tasks)
                     DataRow(cells: [
-                      DataCell(Text(t.title, style: const TextStyle(fontSize: 13))),
-                      DataCell(Text(projectsById[t.projectId]?.name ?? '—', style: const TextStyle(fontSize: 13))),
-                      DataCell(Text(departmentsById[t.departmentId]?.name ?? '—', style: const TextStyle(fontSize: 13))),
-                      DataCell(Text(t.assigneeId != null ? (usersById[t.assigneeId]?.displayName ?? '—') : '—', style: const TextStyle(fontSize: 13))),
+                      DataCell(Text(t.title)),
+                      DataCell(Text(projectsById[t.projectId]?.name ?? '—')),
+                      DataCell(Text(departmentsById[t.departmentId]?.name ?? '—')),
+                      DataCell(Text(t.assigneeId != null ? (usersById[t.assigneeId]?.displayName ?? '—') : '—')),
                       DataCell(Text(
                         t.dueDate != null ? '${today.difference(t.dueDate!).inDays} ngày' : '—',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.webDestructive),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: c.destructive),
                       )),
                     ]),
                 ],

@@ -121,14 +121,18 @@ class _ReceivablesWebTab extends ConsumerWidget {
               children: [
                 ResponsiveStatRow(
                   children: [
-                    _StatCard(icon: Icons.access_time, color: AppColors.webMutedFg, value: '${currency.format(totalRemaining)} ₫', label: 'Tổng công nợ phải thu'),
-                    _StatCard(icon: Icons.warning_amber_outlined, color: AppColors.webDestructive, value: '${currency.format(overdueAmount)} ₫', label: 'Đã quá hạn thanh toán', valueColor: AppColors.webDestructive),
-                    _StatCard(icon: Icons.people_outline, color: AppColors.gold, value: '$clientsWithDebt', label: 'Khách hàng đang có công nợ'),
+                    _StatCard(icon: Icons.access_time, color: context.colors.mutedFg, value: '${currency.format(totalRemaining)} ₫', label: 'Tổng công nợ phải thu'),
+                    _StatCard(icon: Icons.warning_amber_outlined, color: context.colors.destructive, value: '${currency.format(overdueAmount)} ₫', label: 'Đã quá hạn thanh toán', valueColor: context.colors.destructive),
+                    _StatCard(icon: Icons.people_outline, color: context.colors.gold, value: '$clientsWithDebt', label: 'Khách hàng đang có công nợ'),
                   ],
                 ),
                 const SizedBox(height: 16),
                 Container(
-                  decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [context.colors.cardGradTop, context.colors.cardGradBottom]),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: context.colors.border),
+                  ),
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,7 +146,7 @@ class _ReceivablesWebTab extends ConsumerWidget {
                               children: [
                                 const Text('Công nợ phải thu theo khách hàng', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                                 const SizedBox(height: 4),
-                                Text('Theo dõi theo từng đợt thanh toán đã khai báo trong hợp đồng — đợt nào đến hạn/quá hạn sẽ được nhắc tự động.', style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+                                Text('Theo dõi theo từng đợt thanh toán đã khai báo trong hợp đồng — đợt nào đến hạn/quá hạn sẽ được nhắc tự động.', style: TextStyle(fontSize: 12, color: context.colors.mutedFg)),
                               ],
                             ),
                           ),
@@ -181,11 +185,11 @@ class _ReceivablesWebTab extends ConsumerWidget {
                                   DataCell(Text(r.project?.name ?? '—', style: const TextStyle(fontSize: 13))),
                                   DataCell(Text('${currency.format(r.contract.value)} ₫', style: const TextStyle(fontSize: 13))),
                                   DataCell(Text('${currency.format(r.contract.paidAmount)} ₫', style: const TextStyle(fontSize: 13))),
-                                  DataCell(Text('${currency.format(r.remaining)} ₫', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: r.overdue ? AppColors.webDestructive : null))),
+                                  DataCell(Text('${currency.format(r.remaining)} ₫', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: r.overdue ? context.colors.destructive : null))),
                                   DataCell(Text(r.currentMilestone != null ? '${r.currentMilestone!.name} (${r.currentMilestone!.ratio.toStringAsFixed(0)}%)' : '—', style: const TextStyle(fontSize: 13))),
                                   DataCell(Text(
                                     r.currentMilestone?.dueDate != null ? '${dateFormat.format(r.currentMilestone!.dueDate!)}${r.overdue ? ' (quá hạn)' : ''}' : '—',
-                                    style: TextStyle(fontSize: 13, fontWeight: r.overdue ? FontWeight.w500 : FontWeight.normal, color: r.overdue ? AppColors.webDestructive : null),
+                                    style: TextStyle(fontSize: 13, fontWeight: r.overdue ? FontWeight.w500 : FontWeight.normal, color: r.overdue ? context.colors.destructive : null),
                                   )),
                                   DataCell(WebBadge(r.overdue ? 'Quá hạn' : 'Đúng hạn', variant: r.overdue ? WebBadgeVariant.destructive : WebBadgeVariant.outline)),
                                 ]),
@@ -280,14 +284,18 @@ class _PayablesWebTab extends ConsumerWidget {
               children: [
                 ResponsiveStatRow(
                   children: [
-                    _StatCard(icon: Icons.access_time, color: AppColors.webMutedFg, value: '${currency.format(totalRemaining)} ₫', label: 'Tổng công nợ phải trả'),
-                    _StatCard(icon: Icons.warning_amber_outlined, color: AppColors.webDestructive, value: '${currency.format(overdueAmount)} ₫', label: 'Đã quá hạn thanh toán', valueColor: AppColors.webDestructive),
-                    _StatCard(icon: Icons.inventory_2_outlined, color: AppColors.gold, value: '$vendorsWithDebt', label: 'NCC/thầu phụ đang nợ'),
+                    _StatCard(icon: Icons.access_time, color: context.colors.mutedFg, value: '${currency.format(totalRemaining)} ₫', label: 'Tổng công nợ phải trả'),
+                    _StatCard(icon: Icons.warning_amber_outlined, color: context.colors.destructive, value: '${currency.format(overdueAmount)} ₫', label: 'Đã quá hạn thanh toán', valueColor: context.colors.destructive),
+                    _StatCard(icon: Icons.inventory_2_outlined, color: context.colors.gold, value: '$vendorsWithDebt', label: 'NCC/thầu phụ đang nợ'),
                   ],
                 ),
                 const SizedBox(height: 16),
                 Container(
-                  decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [context.colors.cardGradTop, context.colors.cardGradBottom]),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: context.colors.border),
+                  ),
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -333,10 +341,10 @@ class _PayablesWebTab extends ConsumerWidget {
                                     DataCell(WebBadge(categoriesById[p.costCategoryId] ?? '—', variant: WebBadgeVariant.outline)),
                                     DataCell(Text('${currency.format(p.totalAmount)} ₫', style: const TextStyle(fontSize: 13))),
                                     DataCell(Text('${currency.format(p.paidAmount)} ₫', style: const TextStyle(fontSize: 13))),
-                                    DataCell(Text('${currency.format(p.remaining)} ₫', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: p.remaining > 0 && _isOverdue(p.dueDate) ? AppColors.webDestructive : null))),
+                                    DataCell(Text('${currency.format(p.remaining)} ₫', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: p.remaining > 0 && _isOverdue(p.dueDate) ? context.colors.destructive : null))),
                                     DataCell(Text(
                                       p.dueDate == null ? '—' : '${dateFormat.format(p.dueDate!)}${p.remaining > 0 && _isOverdue(p.dueDate) ? ' (quá hạn)' : ''}',
-                                      style: TextStyle(fontSize: 13, fontWeight: p.remaining > 0 && _isOverdue(p.dueDate) ? FontWeight.w500 : FontWeight.normal, color: p.remaining > 0 && _isOverdue(p.dueDate) ? AppColors.webDestructive : null),
+                                      style: TextStyle(fontSize: 13, fontWeight: p.remaining > 0 && _isOverdue(p.dueDate) ? FontWeight.w500 : FontWeight.normal, color: p.remaining > 0 && _isOverdue(p.dueDate) ? context.colors.destructive : null),
                                     )),
                                     DataCell(WebBadge(
                                       p.remaining <= 0 ? 'Đã tất toán' : (_isOverdue(p.dueDate) ? 'Quá hạn' : 'Đúng hạn'),
@@ -392,8 +400,13 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
-      decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: c.border),
+      ),
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
@@ -410,7 +423,7 @@ class _StatCard extends StatelessWidget {
               children: [
                 Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: valueColor), overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
-                Text(label.toUpperCase(), style: TextStyle(fontSize: 10, letterSpacing: 0.3, color: AppColors.webMutedFg)),
+                Text(label.toUpperCase(), style: TextStyle(fontSize: 10, letterSpacing: 0.3, color: c.mutedFg)),
               ],
             ),
           ),

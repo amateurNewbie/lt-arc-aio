@@ -43,12 +43,12 @@ class DepartmentsPage extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Text('Quản lý bộ phận, Trưởng bộ phận phụ trách và nhân sự.', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg)),
+                    child: Text('Quản lý bộ phận, Trưởng bộ phận phụ trách và nhân sự.', style: TextStyle(fontSize: 13, color: context.colors.mutedFg)),
                   ),
                   if (canManage)
                     FilledButton.icon(
                       onPressed: () => showDepartmentFormDialog(context),
-                      style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                      style: FilledButton.styleFrom(backgroundColor: context.colors.fg, foregroundColor: Colors.white),
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('Tạo bộ phận'),
                     ),
@@ -98,8 +98,13 @@ class _DepartmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
-      decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: c.border),
+      ),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,10 +115,10 @@ class _DepartmentCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 13,
-                backgroundColor: AppColors.webSecondaryBg,
+                backgroundColor: c.secondary,
                 child: Text(
                   headName != null && headName!.isNotEmpty ? headName!.trim().split(' ').last.substring(0, 1).toUpperCase() : '—',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.webSecondaryFg),
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.secondaryFg),
                 ),
               ),
               const SizedBox(width: 8),
@@ -133,18 +138,18 @@ class _DepartmentCard extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Text('${department.employeeCount} nhân viên', style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+              Text('${department.employeeCount} nhân viên', style: TextStyle(fontSize: 12, color: c.mutedFg)),
               const SizedBox(width: 16),
-              Text('${department.activeTaskCount} việc đang làm', style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+              Text('${department.activeTaskCount} việc đang làm', style: TextStyle(fontSize: 12, color: c.mutedFg)),
             ],
           ),
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(value: department.avgTaskProgress / 100, minHeight: 6, backgroundColor: AppColors.webMutedBg, color: AppColors.gold),
+            child: LinearProgressIndicator(value: department.avgTaskProgress / 100, minHeight: 6, backgroundColor: c.muted, color: c.gold),
           ),
           const SizedBox(height: 6),
-          Text('Tiến độ trung bình ${department.avgTaskProgress.toStringAsFixed(0)}%', style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+          Text('Tiến độ trung bình ${department.avgTaskProgress.toStringAsFixed(0)}%', style: TextStyle(fontSize: 12, color: c.mutedFg)),
         ],
       ),
     );
@@ -162,9 +167,14 @@ class _HeadsTableCard extends ConsumerWidget {
     final employeesAsync = ref.watch(employeeListProvider);
     final statusByUserId = {for (final e in employeesAsync.value ?? const <Employee>[]) e.userId: e.status};
     final heads = departments.where((d) => d.headUserId != null && usersById.containsKey(d.headUserId)).toList();
+    final c = context.colors;
 
     return Container(
-      decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: c.border),
+      ),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

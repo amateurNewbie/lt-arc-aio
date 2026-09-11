@@ -43,7 +43,7 @@ class ExpenseTab extends ConsumerWidget {
             alignment: Alignment.centerRight,
             child: FilledButton.icon(
               onPressed: () => showExpenseDialog(context, projectId),
-              style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+              style: FilledButton.styleFrom(backgroundColor: context.colors.fg, foregroundColor: Colors.white),
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Thêm khoản chi'),
             ),
@@ -88,7 +88,7 @@ class ExpenseTab extends ConsumerWidget {
                                 DataCell(
                                   Text(
                                     '-${currency.format(c.amount)} ₫',
-                                    style: const TextStyle(color: AppColors.webDestructive, fontWeight: FontWeight.w600),
+                                    style: TextStyle(color: context.colors.destructive, fontWeight: FontWeight.w600),
                                   ),
                                 ),
                               ],

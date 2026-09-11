@@ -116,7 +116,8 @@ class _ToastCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = error ? AppColors.webDestructive : AppColors.webForeground;
+    final c = context.colors;
+    final bg = error ? c.destructive : c.fg;
     return Material(
       elevation: 8,
       borderRadius: BorderRadius.circular(8),

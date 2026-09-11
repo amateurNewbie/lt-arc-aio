@@ -13,6 +13,7 @@ class ProjectLedgerTable extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final paymentsAsync = ref.watch(projectPaymentListProvider(projectId));
     final costsAsync = ref.watch(projectCostListProvider(projectId));
     final currency = NumberFormat.decimalPattern('vi');
@@ -20,9 +21,9 @@ class ProjectLedgerTable extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.webCardBg,
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.webBorder),
+        border: Border.all(color: c.border),
       ),
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -77,7 +78,7 @@ class ProjectLedgerTable extends ConsumerWidget {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: r.type == 'Thu' ? AppColors.webSuccess : AppColors.webWarning,
+                                color: r.type == 'Thu' ? c.success : c.warning,
                               ),
                             )),
                             DataCell(ConstrainedBox(
@@ -89,7 +90,7 @@ class ProjectLedgerTable extends ConsumerWidget {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: r.type == 'Thu' ? AppColors.webSuccess : AppColors.webDestructive,
+                                color: r.type == 'Thu' ? c.success : c.destructive,
                               ),
                             )),
                           ]),

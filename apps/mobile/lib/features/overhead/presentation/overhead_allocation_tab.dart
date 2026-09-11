@@ -170,9 +170,9 @@ class _OverheadAllocationTabState extends ConsumerState<OverheadAllocationTab> {
           const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
-              color: AppColors.webCardBg,
+              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [context.colors.cardGradTop, context.colors.cardGradBottom]),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.webBorder),
+              border: Border.all(color: context.colors.border),
             ),
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -260,7 +260,7 @@ class _OverheadAllocationTabState extends ConsumerState<OverheadAllocationTab> {
                     if (canManage)
                       FilledButton(
                         onPressed: _savingCost ? null : _saveCost,
-                        style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                        style: FilledButton.styleFrom(backgroundColor: context.colors.fg, foregroundColor: Colors.white),
                         child: _savingCost
                             ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                             : const Text('Lưu'),
@@ -273,9 +273,9 @@ class _OverheadAllocationTabState extends ConsumerState<OverheadAllocationTab> {
           const SizedBox(height: 16),
           Container(
             decoration: BoxDecoration(
-              color: AppColors.webCardBg,
+              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [context.colors.cardGradTop, context.colors.cardGradBottom]),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.webBorder),
+              border: Border.all(color: context.colors.border),
             ),
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -304,7 +304,7 @@ class _OverheadAllocationTabState extends ConsumerState<OverheadAllocationTab> {
                               DataCell(Text(categoriesById[c.costCategoryId]?.name ?? '—', style: const TextStyle(fontSize: 13))),
                               DataCell(Text('${currency.format(c.amount)} ₫', style: const TextStyle(fontSize: 13))),
                               DataCell(Text(dateFormat.format(c.date), style: const TextStyle(fontSize: 13))),
-                              DataCell(Text(c.note ?? '—', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg))),
+                              DataCell(Text(c.note ?? '—', style: TextStyle(fontSize: 13, color: context.colors.mutedFg))),
                             ]),
                           DataRow(cells: [
                             const DataCell(Text('Tổng', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
@@ -325,9 +325,9 @@ class _OverheadAllocationTabState extends ConsumerState<OverheadAllocationTab> {
           const SizedBox(height: 16),
           Container(
             decoration: BoxDecoration(
-              color: AppColors.webCardBg,
+              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [context.colors.cardGradTop, context.colors.cardGradBottom]),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.webBorder),
+              border: Border.all(color: context.colors.border),
             ),
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -343,7 +343,7 @@ class _OverheadAllocationTabState extends ConsumerState<OverheadAllocationTab> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: remaining == 0 ? AppColors.webSuccess : AppColors.webWarning,
+                        color: remaining == 0 ? context.colors.success : context.colors.warning,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -352,7 +352,7 @@ class _OverheadAllocationTabState extends ConsumerState<OverheadAllocationTab> {
                         onPressed: _applying || projects.isEmpty || totalMonth <= 0
                             ? null
                             : () => _applyAllocation(projects, totalMonth),
-                        style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                        style: FilledButton.styleFrom(backgroundColor: context.colors.fg, foregroundColor: Colors.white),
                         child: _applying
                             ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                             : const Text('Apply'),
@@ -362,7 +362,7 @@ class _OverheadAllocationTabState extends ConsumerState<OverheadAllocationTab> {
                 const SizedBox(height: 4),
                 Text(
                   'Nhập số tiền phân bổ từng dự án đang hoạt động. Tổng phải bằng tổng chi phí chung tháng.',
-                  style: TextStyle(fontSize: 12, color: AppColors.webMutedFg),
+                  style: TextStyle(fontSize: 12, color: context.colors.mutedFg),
                 ),
                 const SizedBox(height: 12),
                 projectsAsync.when(
@@ -383,7 +383,7 @@ class _OverheadAllocationTabState extends ConsumerState<OverheadAllocationTab> {
                           for (final p in list)
                             DataRow(cells: [
                               DataCell(Text(p.projectName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-                              DataCell(Text(p.projectCode, style: TextStyle(fontSize: 12, color: AppColors.webMutedFg))),
+                              DataCell(Text(p.projectCode, style: TextStyle(fontSize: 12, color: context.colors.mutedFg))),
                               DataCell(
                                 SizedBox(
                                   width: 160,

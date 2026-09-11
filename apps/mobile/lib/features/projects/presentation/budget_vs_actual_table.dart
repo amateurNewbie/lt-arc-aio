@@ -18,6 +18,7 @@ class BudgetVsActualTable extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final budgetsAsync = ref.watch(budgetListProvider(projectId));
     final costsAsync = ref.watch(projectCostListProvider(projectId));
     final categoriesAsync = ref.watch(costCategoryListProvider());
@@ -25,9 +26,9 @@ class BudgetVsActualTable extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.webCardBg,
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.webBorder),
+        border: Border.all(color: c.border),
       ),
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -89,7 +90,7 @@ class BudgetVsActualTable extends ConsumerWidget {
                                 '${currency.format(remain)} ₫',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: remain < 0 ? AppColors.webDestructive : null,
+                                  color: remain < 0 ? c.destructive : null,
                                   fontWeight: FontWeight.w500,
                                 ),
                               )),

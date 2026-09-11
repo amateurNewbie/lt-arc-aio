@@ -20,11 +20,11 @@ WebBadgeVariant _priorityVariant(TaskPriority p) => switch (p) {
       TaskPriority.low => WebBadgeVariant.secondary,
     };
 
-InputDecoration _webSelectDecoration() => InputDecoration(
+InputDecoration _webSelectDecoration(BuildContext context) => InputDecoration(
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: AppColors.webBorder)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: AppColors.webBorder)),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: context.colors.border)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: context.colors.border)),
     );
 
 /// Trang "Công việc" bản Web — Kanban 3 cột; nhân viên cập nhật tiến độ trên thẻ của mình.
@@ -60,21 +60,21 @@ class TasksWebPage extends ConsumerWidget {
                 isEmployee
                     ? 'Cập nhật tiến độ công việc được giao. Cần làm → Đang làm → Hoàn thành.'
                     : 'Bảng tiến độ theo trạng thái. Chỉ nhân viên được cập nhật tiến độ việc của mình.',
-                style: TextStyle(fontSize: 13, color: AppColors.webMutedFg),
+                style: TextStyle(fontSize: 13, color: context.colors.mutedFg),
               ),
               const SizedBox(height: 16),
               if (dueTomorrow.isNotEmpty)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.gold.withValues(alpha: 0.08),
-                    border: Border.all(color: AppColors.gold.withValues(alpha: 0.4)),
+                    color: context.colors.gold.withValues(alpha: 0.08),
+                    border: Border.all(color: context.colors.gold.withValues(alpha: 0.4)),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.notifications_active_outlined, size: 18, color: AppColors.gold),
+                      Icon(Icons.notifications_active_outlined, size: 18, color: context.colors.gold),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text.rich(
@@ -100,7 +100,7 @@ class TasksWebPage extends ConsumerWidget {
                       data: (projects) => DropdownButtonFormField<String?>(
                         initialValue: filter.projectId,
                         isExpanded: true,
-                        decoration: _webSelectDecoration(),
+                        decoration: _webSelectDecoration(context),
                         items: [
                           const DropdownMenuItem(
                             value: null,
@@ -124,7 +124,7 @@ class TasksWebPage extends ConsumerWidget {
                       data: (departments) => DropdownButtonFormField<String?>(
                         initialValue: filter.departmentId,
                         isExpanded: true,
-                        decoration: _webSelectDecoration(),
+                        decoration: _webSelectDecoration(context),
                         items: [
                           const DropdownMenuItem(
                             value: null,
@@ -148,7 +148,7 @@ class TasksWebPage extends ConsumerWidget {
                       data: (users) => DropdownButtonFormField<String?>(
                         initialValue: filter.assigneeId,
                         isExpanded: true,
-                        decoration: _webSelectDecoration(),
+                        decoration: _webSelectDecoration(context),
                         items: [
                           const DropdownMenuItem(
                             value: null,
@@ -222,8 +222,13 @@ class _KanbanColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
-      decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: c.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -265,11 +270,12 @@ class _TaskWebCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final usersAsync = ref.watch(userListProvider);
     final assigneeName = task.assigneeId != null ? (usersAsync.value ?? const []).where((u) => u.id == task.assigneeId).firstOrNull?.displayName : null;
 
     return Material(
-      color: AppColors.webBackground,
+      color: c.bg,
       borderRadius: BorderRadius.circular(4),
       child: InkWell(
         onTap: canUpdate ? () => showTaskProgressDialog(context, ref, task) : null,
@@ -278,7 +284,7 @@ class _TaskWebCard extends ConsumerWidget {
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            border: Border.all(color: task.isOverdue ? AppColors.webDestructive.withValues(alpha: 0.4) : AppColors.webBorder),
+            border: Border.all(color: task.isOverdue ? c.destructive.withValues(alpha: 0.4) : c.border),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Column(
@@ -291,28 +297,28 @@ class _TaskWebCard extends ConsumerWidget {
                   WebBadge(task.priority.label, variant: _priorityVariant(task.priority)),
                 ],
               ),
-              if (project != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(project!.name, style: TextStyle(fontSize: 12, color: AppColors.webForeground))),
+              if (project != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(project!.name, style: TextStyle(fontSize: 12, color: c.fg))),
               const SizedBox(height: 8),
               ClipRRect(
                 borderRadius: BorderRadius.circular(3),
                 child: LinearProgressIndicator(
                   value: task.progress / 100,
                   minHeight: 6,
-                  backgroundColor: AppColors.webMutedBg,
-                  color: AppColors.gold,
+                  backgroundColor: c.muted,
+                  color: c.gold,
                 ),
               ),
               const SizedBox(height: 6),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(assigneeName ?? '—', style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+                  Text(assigneeName ?? '—', style: TextStyle(fontSize: 12, color: c.mutedFg)),
                   Text(
                     task.dueDate != null ? DateFormat('dd/MM').format(task.dueDate!) + (task.isOverdue ? ' quá hạn' : '') : '—',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: task.isOverdue ? FontWeight.w500 : FontWeight.normal,
-                      color: task.isOverdue ? AppColors.webDestructive : AppColors.webMutedFg,
+                      color: task.isOverdue ? c.destructive : c.mutedFg,
                     ),
                   ),
                 ],
@@ -324,7 +330,7 @@ class _TaskWebCard extends ConsumerWidget {
                   child: TextButton.icon(
                     style: TextButton.styleFrom(
                       visualDensity: VisualDensity.compact,
-                      foregroundColor: AppColors.webForeground,
+                      foregroundColor: c.fg,
                       padding: EdgeInsets.zero,
                     ),
                     onPressed: () => showTaskProgressDialog(context, ref, task),

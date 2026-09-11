@@ -39,7 +39,7 @@ class ProjectTasksTab extends ConsumerWidget {
             if (me?.role != 'EMPLOYEE')
               FilledButton.icon(
                 onPressed: () => showProjectTaskDialog(context, projectId),
-                style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                style: FilledButton.styleFrom(backgroundColor: context.colors.fg, foregroundColor: Colors.white),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Tạo công việc'),
               ),
@@ -88,7 +88,7 @@ class ProjectTasksTab extends ConsumerWidget {
                   rows: [
                     for (final row in ordered)
                       DataRow(
-                        color: row.task.isOverdue ? WidgetStatePropertyAll(AppColors.webWarning.withValues(alpha: 0.12)) : null,
+                        color: row.task.isOverdue ? WidgetStatePropertyAll(context.colors.warning.withValues(alpha: 0.12)) : null,
                         cells: [
                           DataCell(
                             InkWell(
@@ -102,7 +102,7 @@ class ProjectTasksTab extends ConsumerWidget {
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: row.child ? FontWeight.w400 : FontWeight.w500,
-                                    color: row.child ? AppColors.webMutedFg : null,
+                                    color: row.child ? context.colors.mutedFg : null,
                                   ),
                                 ),
                               ),
@@ -134,8 +134,8 @@ class ProjectTasksTab extends ConsumerWidget {
                                           child: LinearProgressIndicator(
                                             value: row.task.progress / 100,
                                             minHeight: 6,
-                                            backgroundColor: AppColors.webMutedBg,
-                                            color: row.task.isOverdue ? AppColors.webDestructive : AppColors.gold,
+                                            backgroundColor: context.colors.muted,
+                                            color: row.task.isOverdue ? context.colors.destructive : context.colors.gold,
                                           ),
                                         ),
                                       ),
@@ -151,7 +151,7 @@ class ProjectTasksTab extends ConsumerWidget {
                                   : '${dateFmt.format(row.task.dueDate!)}${row.task.isOverdue ? ' (quá hạn)' : ''}',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: row.task.isOverdue ? AppColors.webDestructive : null,
+                                color: row.task.isOverdue ? context.colors.destructive : null,
                                 fontWeight: row.task.isOverdue ? FontWeight.w600 : null,
                               ),
                             ),

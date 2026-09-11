@@ -9,14 +9,17 @@ import '../application/cost_category_provider.dart';
 import '../data/cost_category_repository.dart';
 import '../../../shared/widgets/app_toast.dart';
 
-InputDecoration _fieldDecoration({String? label, String? hint}) => InputDecoration(
-      labelText: label,
-      hintText: hint,
-      isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: AppColors.webBorder)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: AppColors.webBorder)),
-    );
+InputDecoration _fieldDecoration(BuildContext context, {String? label, String? hint}) {
+  final c = context.colors;
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: c.border)),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: c.border)),
+  );
+}
 
 /// FR-7 — Danh mục hạng mục chi phí (Dự toán / Chi phí dự án / Chi phí chung).
 class CostCategoriesTab extends ConsumerStatefulWidget {
@@ -63,6 +66,7 @@ class _CostCategoriesTabState extends ConsumerState<CostCategoriesTab> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final categoriesAsync = ref.watch(costCategoryListProvider());
     final role = ref.watch(authProvider).value?.role;
     final canManage = role == 'ADMIN' || role == 'DIRECTOR';
@@ -78,14 +82,14 @@ class _CostCategoriesTabState extends ConsumerState<CostCategoriesTab> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: TextField(controller: _nameController, decoration: _fieldDecoration(label: 'Tên danh mục', hint: 'VD: Vận chuyển'))),
+              Expanded(child: TextField(controller: _nameController, decoration: _fieldDecoration(context, label: 'Tên danh mục', hint: 'VD: Vận chuyển'))),
               const SizedBox(width: 12),
               SizedBox(
                 width: 200,
                 child: DropdownButtonFormField<CostCategoryScope>(
                   initialValue: _scope,
                   isExpanded: true,
-                  decoration: _fieldDecoration(label: 'Phạm vi'),
+                  decoration: _fieldDecoration(context, label: 'Phạm vi'),
                   items: const [
                     DropdownMenuItem(value: CostCategoryScope.project, child: Text('Chi phí dự án', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
                     DropdownMenuItem(value: CostCategoryScope.company, child: Text('Chi phí chung công ty', style: TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
@@ -94,7 +98,7 @@ class _CostCategoriesTabState extends ConsumerState<CostCategoriesTab> {
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(child: TextField(controller: _descController, decoration: _fieldDecoration(label: 'Mô tả', hint: 'VD: Chi phí vận chuyển vật tư, thiết bị'))),
+              Expanded(child: TextField(controller: _descController, decoration: _fieldDecoration(context, label: 'Mô tả', hint: 'VD: Chi phí vận chuyển vật tư, thiết bị'))),
             ],
           ),
           const SizedBox(height: 12),
@@ -102,7 +106,7 @@ class _CostCategoriesTabState extends ConsumerState<CostCategoriesTab> {
             alignment: Alignment.centerRight,
             child: FilledButton(
               onPressed: _saving ? null : _submit,
-              style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+              style: FilledButton.styleFrom(backgroundColor: c.fg, foregroundColor: Colors.white),
               child: _saving
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Text('Thêm danh mục'),
@@ -118,9 +122,9 @@ class _CostCategoriesTabState extends ConsumerState<CostCategoriesTab> {
               return Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: AppColors.webCardBg,
+                  gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.webBorder),
+                  border: Border.all(color: c.border),
                 ),
                 padding: const EdgeInsets.all(12),
                 child: SingleChildScrollView(
@@ -147,7 +151,7 @@ class _CostCategoriesTabState extends ConsumerState<CostCategoriesTab> {
                                 constraints: const BoxConstraints(maxWidth: 280),
                                 child: Text(
                                   c.description ?? '—',
-                                  style: TextStyle(fontSize: 13, color: AppColors.webMutedFg),
+                                  style: TextStyle(fontSize: 13, color: context.colors.mutedFg),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),

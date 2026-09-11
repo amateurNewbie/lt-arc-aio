@@ -24,6 +24,7 @@ class WorkItemsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final itemsAsync = ref.watch(workItemListProvider(projectId));
     final departmentsAsync = ref.watch(departmentListProvider);
     final canManage = ref.watch(authProvider).value?.role != 'EMPLOYEE';
@@ -42,7 +43,7 @@ class WorkItemsTab extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     'Tiến độ hạng mục được tính tự động từ các công việc liên kết.',
-                    style: TextStyle(fontSize: 12, color: AppColors.webMutedFg),
+                    style: TextStyle(fontSize: 12, color: c.mutedFg),
                   ),
                 ],
               ),
@@ -50,7 +51,7 @@ class WorkItemsTab extends ConsumerWidget {
             if (canManage)
               FilledButton.icon(
                 onPressed: () => showWorkItemDialog(context, projectId),
-                style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                style: FilledButton.styleFrom(backgroundColor: c.fg, foregroundColor: Colors.white),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Thêm hạng mục'),
               ),
@@ -93,8 +94,8 @@ class WorkItemsTab extends ConsumerWidget {
                                       child: LinearProgressIndicator(
                                         value: item.progress / 100,
                                         minHeight: 6,
-                                        backgroundColor: AppColors.webMutedBg,
-                                        color: item.progress == 100 ? AppColors.webSuccess : AppColors.gold,
+                                        backgroundColor: c.muted,
+                                        color: item.progress == 100 ? c.success : c.gold,
                                       ),
                                     ),
                                   ),

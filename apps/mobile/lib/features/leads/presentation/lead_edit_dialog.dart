@@ -281,10 +281,11 @@ class _StepChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final (Color bg, Color fg) = switch (state) {
-      _StepState.done => (AppColors.webSuccess.withValues(alpha: 0.15), AppColors.webSuccess),
-      _StepState.current => (AppColors.webForeground, Colors.white),
-      _StepState.pending => (Colors.transparent, AppColors.webMutedFg),
+      _StepState.done => (c.success.withValues(alpha: 0.15), c.success),
+      _StepState.current => (c.fg, Colors.white),
+      _StepState.pending => (Colors.transparent, c.mutedFg),
       _StepState.disabled => (Colors.transparent, Colors.black26),
     };
     return Container(
@@ -292,13 +293,13 @@ class _StepChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(20),
-        border: state == _StepState.pending ? Border.all(color: AppColors.webBorder) : null,
+        border: state == _StepState.pending ? Border.all(color: c.border) : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (state == _StepState.done)
-            const Padding(padding: EdgeInsets.only(right: 4), child: Icon(Icons.check, size: 12, color: AppColors.webSuccess)),
+            Padding(padding: const EdgeInsets.only(right: 4), child: Icon(Icons.check, size: 12, color: c.success)),
           Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg)),
         ],
       ),
@@ -311,7 +312,7 @@ class _StepConnector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: 20, height: 1.5, color: AppColors.webBorder, margin: const EdgeInsets.symmetric(horizontal: 4));
+    return Container(width: 20, height: 1.5, color: context.colors.border, margin: const EdgeInsets.symmetric(horizontal: 4));
   }
 }
 

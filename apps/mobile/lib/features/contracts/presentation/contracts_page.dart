@@ -66,14 +66,14 @@ class _ContractsPageState extends ConsumerState<ContractsPage> {
                       children: [
                         Text('Hợp đồng', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 4),
-                        Text('Theo dõi hợp đồng ký với khách hàng theo từng dự án.', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg)),
+                        Text('Theo dõi hợp đồng ký với khách hàng theo từng dự án.', style: TextStyle(fontSize: 13, color: context.colors.mutedFg)),
                       ],
                     ),
                   ),
                   if (canCreate)
                     FilledButton.icon(
                       onPressed: () => setState(() => _showCreateForm = !_showCreateForm),
-                      style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                      style: FilledButton.styleFrom(backgroundColor: context.colors.fg, foregroundColor: Colors.white),
                       icon: Icon(_showCreateForm ? Icons.close : Icons.add, size: 18),
                       label: Text(_showCreateForm ? 'Đóng form' : 'Tạo hợp đồng'),
                     ),
@@ -103,10 +103,10 @@ class _ContractsPageState extends ConsumerState<ContractsPage> {
                     children: [
                       ResponsiveStatRow(
                         children: [
-                          _StatCard(icon: Icons.description_outlined, color: AppColors.gold, value: '$total', label: 'Tổng hợp đồng'),
-                          _StatCard(icon: Icons.check_circle_outline, color: AppColors.webSuccess, value: '$active', label: 'Còn hiệu lực'),
-                          _StatCard(icon: Icons.access_time, color: AppColors.webWarning, value: '$expiring', label: 'Sắp hết hạn'),
-                          _StatCard(icon: Icons.account_balance_outlined, color: AppColors.webMutedFg, value: '${currency.format(totalValue)} ₫', label: 'Tổng giá trị hợp đồng'),
+                          _StatCard(icon: Icons.description_outlined, color: context.colors.gold, value: '$total', label: 'Tổng hợp đồng'),
+                          _StatCard(icon: Icons.check_circle_outline, color: context.colors.success, value: '$active', label: 'Còn hiệu lực'),
+                          _StatCard(icon: Icons.access_time, color: context.colors.warning, value: '$expiring', label: 'Sắp hết hạn'),
+                          _StatCard(icon: Icons.account_balance_outlined, color: context.colors.mutedFg, value: '${currency.format(totalValue)} ₫', label: 'Tổng giá trị hợp đồng'),
                         ],
                       ),
                       const SizedBox(height: 20),
@@ -114,7 +114,11 @@ class _ContractsPageState extends ConsumerState<ContractsPage> {
                         const Text('Chưa có hợp đồng nào')
                       else
                         Container(
-                          decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [context.colors.cardGradTop, context.colors.cardGradBottom]),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: context.colors.border),
+                          ),
                           padding: const EdgeInsets.all(16),
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
@@ -187,8 +191,13 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
-      decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: c.border),
+      ),
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
@@ -205,7 +214,7 @@ class _StatCard extends StatelessWidget {
               children: [
                 Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
-                Text(label.toUpperCase(), style: TextStyle(fontSize: 10, letterSpacing: 0.3, color: AppColors.webMutedFg)),
+                Text(label.toUpperCase(), style: TextStyle(fontSize: 10, letterSpacing: 0.3, color: c.mutedFg)),
               ],
             ),
           ),
@@ -263,15 +272,20 @@ class _CollectMilestoneCardState extends ConsumerState<_CollectMilestoneCard> {
     final fundsAsync = ref.watch(fundListProvider);
     final pending = widget.contract.milestones.where((m) => m.remaining > 0).toList();
 
+    final c = context.colors;
     return Container(
-      decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: c.border),
+      ),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Ghi nhận thu tiền theo đợt — ${widget.contract.code}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
-          Text('Hệ thống tự cập nhật công nợ phải thu và tạo bút toán trong Sổ quỹ.', style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+          Text('Hệ thống tự cập nhật công nợ phải thu và tạo bút toán trong Sổ quỹ.', style: TextStyle(fontSize: 12, color: c.mutedFg)),
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -302,7 +316,7 @@ class _CollectMilestoneCardState extends ConsumerState<_CollectMilestoneCard> {
               const SizedBox(width: 10),
               FilledButton(
                 onPressed: _saving ? null : _submit,
-                style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                style: FilledButton.styleFrom(backgroundColor: c.fg, foregroundColor: Colors.white),
                 child: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Lưu khoản thu'),
               ),
             ],
@@ -324,9 +338,14 @@ class _MilestoneScheduleCard extends StatelessWidget {
     final currency = NumberFormat.decimalPattern('vi');
     final dateFormat = DateFormat('dd/MM/yyyy');
     final totalPaid = contract.milestones.fold<int>(0, (s, m) => s + m.paidAmount);
+    final c = context.colors;
 
     return Container(
-      decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: c.border),
+      ),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

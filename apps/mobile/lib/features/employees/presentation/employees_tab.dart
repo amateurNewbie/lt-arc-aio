@@ -22,6 +22,7 @@ class EmployeesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final employeesAsync = ref.watch(employeeListProvider);
     final usersAsync = ref.watch(userListProvider);
     final departmentsAsync = ref.watch(departmentListProvider);
@@ -51,15 +52,19 @@ class EmployeesTab extends ConsumerWidget {
               children: [
                 ResponsiveStatRow(
                   children: [
-                    _StatCard(icon: Icons.badge_outlined, value: '${employees.length}', label: 'Tổng nhân viên', color: AppColors.gold),
-                    _StatCard(icon: Icons.check_circle_outline, value: '$active', label: 'Đang hoạt động', color: AppColors.webSuccess),
-                    _StatCard(icon: Icons.pause_circle_outline, value: '$onLeave', label: 'Tạm nghỉ', color: AppColors.webMutedFg),
-                    _StatCard(icon: Icons.apartment_outlined, value: '${departmentsById.length}', label: 'Bộ phận', color: AppColors.webWarning),
+                    _StatCard(icon: Icons.badge_outlined, value: '${employees.length}', label: 'Tổng nhân viên', color: c.gold),
+                    _StatCard(icon: Icons.check_circle_outline, value: '$active', label: 'Đang hoạt động', color: c.success),
+                    _StatCard(icon: Icons.pause_circle_outline, value: '$onLeave', label: 'Tạm nghỉ', color: c.mutedFg),
+                    _StatCard(icon: Icons.apartment_outlined, value: '${departmentsById.length}', label: 'Bộ phận', color: c.warning),
                   ],
                 ),
                 const SizedBox(height: 20),
                 Container(
-                  decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: c.border),
+                  ),
                   padding: const EdgeInsets.all(16),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -82,7 +87,7 @@ class EmployeesTab extends ConsumerWidget {
                             onSelectChanged: canManage ? (_) => showEmployeePaySheet(context, e) : null,
                             cells: [
                               DataCell(Text(usersById[e.userId]?.displayName ?? '—', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-                              DataCell(Text(usersById[e.userId]?.email ?? '—', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg))),
+                              DataCell(Text(usersById[e.userId]?.email ?? '—', style: TextStyle(fontSize: 13, color: c.mutedFg))),
                               DataCell(Text(e.phone ?? '—', style: const TextStyle(fontSize: 13))),
                               DataCell(WebBadge((usersById[e.userId]?.role ?? '').roleLabel, variant: WebBadgeVariant.outline)),
                               DataCell(Text(usersById[e.userId]?.departmentId != null ? (departmentsById[usersById[e.userId]!.departmentId]?.name ?? '—') : '—', style: const TextStyle(fontSize: 13))),
@@ -115,8 +120,13 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
-      decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: c.border),
+      ),
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
@@ -133,7 +143,7 @@ class _StatCard extends StatelessWidget {
               children: [
                 Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
-                Text(label.toUpperCase(), style: TextStyle(fontSize: 10.5, letterSpacing: 0.5, color: AppColors.webMutedFg)),
+                Text(label.toUpperCase(), style: TextStyle(fontSize: 10.5, letterSpacing: 0.5, color: c.mutedFg)),
               ],
             ),
           ),

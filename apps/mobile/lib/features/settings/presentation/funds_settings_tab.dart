@@ -32,7 +32,7 @@ class FundsSettingsTab extends ConsumerWidget {
               if (canManage)
                 FilledButton.icon(
                   onPressed: () => showFundFormSheet(context),
-                  style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                  style: FilledButton.styleFrom(backgroundColor: context.colors.fg, foregroundColor: Colors.white),
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Thêm quỹ'),
                 ),
@@ -51,15 +51,16 @@ class FundsSettingsTab extends ConsumerWidget {
                 separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final fund = funds[index];
+                  final c = context.colors;
                   return Container(
                     decoration: BoxDecoration(
-                      color: AppColors.webCardBg,
+                      gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.webBorder),
+                      border: Border.all(color: c.border),
                     ),
                     child: ListTile(
                       title: Text(fund.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                      subtitle: Text(fund.type.label, style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+                      subtitle: Text(fund.type.label, style: TextStyle(fontSize: 12, color: c.mutedFg)),
                       trailing: Text(
                         '${currency.format(fund.balance)} ₫',
                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),

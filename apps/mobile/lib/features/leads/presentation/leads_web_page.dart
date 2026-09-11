@@ -48,7 +48,7 @@ class LeadsWebPage extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               'Theo dõi khách hàng tiềm năng từ liên hệ đầu tiên đến khi ký hợp đồng.',
-              style: TextStyle(fontSize: 13, color: AppColors.webMutedFg),
+              style: TextStyle(fontSize: 13, color: context.colors.mutedFg),
             ),
             const SizedBox(height: 20),
             _StatsRow(leadsAsync: leadsAsync),
@@ -72,11 +72,12 @@ class _WebCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.webCardBg,
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.webBorder),
+        border: Border.all(color: c.border),
       ),
       padding: padding,
       child: child,
@@ -91,6 +92,7 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final leads = leadsAsync.value ?? const <Lead>[];
     final total = leads.length;
     final consulting = leads.where((l) => l.status == LeadStatus.consulting).length;
@@ -100,18 +102,18 @@ class _StatsRow extends StatelessWidget {
 
     return Row(
       children: [
-        Expanded(child: _StatCard(icon: Icons.people_outline, iconColor: AppColors.webForeground, iconBgColor: AppColors.gold, value: '$total', label: 'Tổng khách hàng tiềm năng')),
+        Expanded(child: _StatCard(icon: Icons.people_outline, iconColor: c.fg, iconBgColor: c.gold, value: '$total', label: 'Tổng khách hàng tiềm năng')),
         const SizedBox(width: 12),
-        Expanded(child: _StatCard(icon: Icons.mark_chat_unread_outlined, iconColor: AppColors.webWarning, value: '$consulting', label: 'Đang tư vấn')),
+        Expanded(child: _StatCard(icon: Icons.mark_chat_unread_outlined, iconColor: c.warning, value: '$consulting', label: 'Đang tư vấn')),
         const SizedBox(width: 12),
-        Expanded(child: _StatCard(icon: Icons.description_outlined, iconColor: AppColors.webForeground, iconBgColor: AppColors.gold, value: '$quoted', label: 'Đã báo giá')),
+        Expanded(child: _StatCard(icon: Icons.description_outlined, iconColor: c.fg, iconBgColor: c.gold, value: '$quoted', label: 'Đã báo giá')),
         const SizedBox(width: 12),
         Expanded(
           child: _StatCard(
             icon: Icons.check_circle_outline,
-            iconColor: AppColors.webSuccess,
+            iconColor: c.success,
             value: '$conversionRate%',
-            valueColor: AppColors.webSuccess,
+            valueColor: c.success,
             label: 'Tỷ lệ chuyển đổi thành khách hàng',
           ),
         ),
@@ -151,7 +153,7 @@ class _StatCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   label.toUpperCase(),
-                  style: TextStyle(fontSize: 10.5, letterSpacing: 0.5, color: AppColors.webMutedFg),
+                  style: TextStyle(fontSize: 10.5, letterSpacing: 0.5, color: context.colors.mutedFg),
                   maxLines: 2,
                 ),
               ],
@@ -169,17 +171,20 @@ class _FieldLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(text.toUpperCase(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.4, color: AppColors.webMutedFg));
+    return Text(text.toUpperCase(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.4, color: context.colors.mutedFg));
   }
 }
 
-InputDecoration _webInputDecoration({String? hint}) => InputDecoration(
-      hintText: hint,
-      isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: AppColors.webBorder)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: AppColors.webBorder)),
-    );
+InputDecoration _webInputDecoration(BuildContext context, {String? hint}) {
+  final c = context.colors;
+  return InputDecoration(
+    hintText: hint,
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: c.border)),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: c.border)),
+  );
+}
 
 class _CreateLeadCard extends ConsumerStatefulWidget {
   const _CreateLeadCard();
@@ -277,24 +282,24 @@ class _CreateLeadCardState extends ConsumerState<_CreateLeadCard> {
           const SizedBox(height: 4),
           Text(
             'Nhập thông tin ngay khi có liên hệ mới, phân công người phụ trách tư vấn.',
-            style: TextStyle(fontSize: 13, color: AppColors.webMutedFg),
+            style: TextStyle(fontSize: 13, color: context.colors.mutedFg),
           ),
           const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _field('Họ tên khách hàng', TextField(controller: _nameController, decoration: _webInputDecoration(hint: 'VD: Anh Hoàng Minh')))),
+              Expanded(child: _field('Họ tên khách hàng', TextField(controller: _nameController, decoration: _webInputDecoration(context, hint: 'VD: Anh Hoàng Minh')))),
               const SizedBox(width: 12),
-              Expanded(child: _field('Số điện thoại', TextField(controller: _phoneController, decoration: _webInputDecoration(hint: '09xx xxx xxx')))),
+              Expanded(child: _field('Số điện thoại', TextField(controller: _phoneController, decoration: _webInputDecoration(context, hint: '09xx xxx xxx')))),
               const SizedBox(width: 12),
-              Expanded(child: _field('Email', TextField(controller: _emailController, decoration: _webInputDecoration(hint: 'email@vidu.com')))),
+              Expanded(child: _field('Email', TextField(controller: _emailController, decoration: _webInputDecoration(context, hint: 'email@vidu.com')))),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _field('Nhu cầu / Loại công trình', TextField(controller: _needController, decoration: _webInputDecoration(hint: 'VD: Nhà phố')))),
+              Expanded(child: _field('Nhu cầu / Loại công trình', TextField(controller: _needController, decoration: _webInputDecoration(context, hint: 'VD: Nhà phố')))),
               const SizedBox(width: 12),
               Expanded(
                 child: _field(
@@ -302,7 +307,7 @@ class _CreateLeadCardState extends ConsumerState<_CreateLeadCard> {
                   TextField(
                     controller: _budgetController,
                     keyboardType: TextInputType.number,
-                    decoration: _webInputDecoration(hint: '0 ₫'),
+                    decoration: _webInputDecoration(context, hint: '0 ₫'),
                   ),
                 ),
               ),
@@ -313,7 +318,7 @@ class _CreateLeadCardState extends ConsumerState<_CreateLeadCard> {
                   DropdownButtonFormField<String>(
                     key: ValueKey('lead-source-$_formEpoch'),
                     initialValue: _source,
-                    decoration: _webInputDecoration(),
+                    decoration: _webInputDecoration(context),
                     hint: const Text('Chọn nguồn', style: TextStyle(fontSize: 13)),
                     items: _leadSources.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13)))).toList(),
                     onChanged: (v) => setState(() => _source = v),
@@ -333,7 +338,7 @@ class _CreateLeadCardState extends ConsumerState<_CreateLeadCard> {
                     data: (users) => DropdownButtonFormField<String>(
                       key: ValueKey('lead-owner-$_formEpoch'),
                       initialValue: _ownerId,
-                      decoration: _webInputDecoration(),
+                      decoration: _webInputDecoration(context),
                       hint: const Text('Chọn người phụ trách', style: TextStyle(fontSize: 13)),
                       items: users.map((u) => DropdownMenuItem(value: u.id, child: Text(u.displayName, style: const TextStyle(fontSize: 13)))).toList(),
                       onChanged: (v) => setState(() => _ownerId = v),
@@ -346,7 +351,7 @@ class _CreateLeadCardState extends ConsumerState<_CreateLeadCard> {
               const SizedBox(width: 12),
               Expanded(
                 flex: 2,
-                child: _field('Ghi chú', TextField(controller: _noteController, decoration: _webInputDecoration(hint: 'VD: Khách quan tâm phong cách hiện đại...'))),
+                child: _field('Ghi chú', TextField(controller: _noteController, decoration: _webInputDecoration(context, hint: 'VD: Khách quan tâm phong cách hiện đại...'))),
               ),
             ],
           ),
@@ -355,7 +360,7 @@ class _CreateLeadCardState extends ConsumerState<_CreateLeadCard> {
             alignment: Alignment.centerRight,
             child: FilledButton(
               onPressed: _saving ? null : _submit,
-              style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+              style: FilledButton.styleFrom(backgroundColor: context.colors.fg, foregroundColor: Colors.white),
               child: _saving
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Text('Lưu khách hàng tiềm năng'),
@@ -390,7 +395,7 @@ class _FilterRow extends ConsumerWidget {
       children: [
         Expanded(
           child: TextField(
-            decoration: _webInputDecoration(hint: 'Tìm theo tên hoặc số điện thoại...').copyWith(prefixIcon: const Icon(Icons.search, size: 18)),
+            decoration: _webInputDecoration(context, hint: 'Tìm theo tên hoặc số điện thoại...').copyWith(prefixIcon: const Icon(Icons.search, size: 18)),
             onChanged: (v) => ref.read(leadFilterProvider.notifier).setSearch(v),
           ),
         ),
@@ -399,7 +404,7 @@ class _FilterRow extends ConsumerWidget {
           width: 180,
           child: DropdownButtonFormField<LeadStatus?>(
             initialValue: filter.status,
-            decoration: _webInputDecoration(),
+            decoration: _webInputDecoration(context),
             items: [
               const DropdownMenuItem(value: null, child: Text('Trạng thái: Tất cả', style: TextStyle(fontSize: 13))),
               for (final s in LeadStatus.values) DropdownMenuItem(value: s, child: Text(s.label, style: const TextStyle(fontSize: 13))),
@@ -412,7 +417,7 @@ class _FilterRow extends ConsumerWidget {
           width: 180,
           child: DropdownButtonFormField<String?>(
             initialValue: filter.source,
-            decoration: _webInputDecoration(),
+            decoration: _webInputDecoration(context),
             items: [
               const DropdownMenuItem(value: null, child: Text('Nguồn: Tất cả', style: TextStyle(fontSize: 13))),
               for (final s in _leadSources) DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13))),
@@ -426,7 +431,7 @@ class _FilterRow extends ConsumerWidget {
           child: usersAsync.when(
             data: (users) => DropdownButtonFormField<String?>(
               initialValue: filter.ownerId,
-              decoration: _webInputDecoration(),
+              decoration: _webInputDecoration(context),
               items: [
                 const DropdownMenuItem(value: null, child: Text('Người phụ trách: Tất cả', style: TextStyle(fontSize: 13))),
                 for (final u in users) DropdownMenuItem(value: u.id, child: Text(u.displayName, style: const TextStyle(fontSize: 13))),
@@ -540,7 +545,7 @@ class _LeadsTableCard extends ConsumerWidget {
           onPressed: () => showLeadEditDialog(context, lead),
         ),
         IconButton(
-          icon: Icon(Icons.delete_outline, size: 18, color: AppColors.webDestructive),
+          icon: Icon(Icons.delete_outline, size: 18, color: context.colors.destructive),
           tooltip: 'Xoá',
           onPressed: () => _confirmDelete(context, ref, lead),
         ),
@@ -557,7 +562,7 @@ class _LeadsTableCard extends ConsumerWidget {
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Huỷ')),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.webDestructive),
+            style: FilledButton.styleFrom(backgroundColor: context.colors.destructive),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Xoá'),
           ),

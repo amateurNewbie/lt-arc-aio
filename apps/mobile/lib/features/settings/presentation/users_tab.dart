@@ -48,7 +48,7 @@ class UsersTab extends ConsumerWidget {
               final u = users[index];
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: AppColors.webCardBg,
+                  backgroundColor: context.colors.card,
                   child: Text(u.displayName.isNotEmpty ? u.displayName[0].toUpperCase() : '?'),
                 ),
                 title: Text(u.displayName),

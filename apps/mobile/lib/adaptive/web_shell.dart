@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme/app_theme.dart';
+import '../core/theme/theme_mode_provider.dart';
 import '../features/auth/application/auth_provider.dart';
 import '../features/dashboard/presentation/dashboard_page.dart';
 import '../features/debts/presentation/debts_page.dart';
@@ -91,50 +92,55 @@ class _WebShellState extends ConsumerState<WebShell> {
     if (_index >= allItems.length) _index = 0;
 
     return Scaffold(
-      body: Row(
+      body: Stack(
         children: [
-          Container(
-            width: 240,
-            color: AppColors.webSidebar,
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  child: Text('LT ARC', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
-                ),
-                _groupLabel('ĐIỀU HÀNH'),
-                for (var i = 0; i < _dieuHanh.length; i++) _item(i, _dieuHanh[i]),
-                if (taiChinh.isNotEmpty) ...[
-                  _groupLabel('TÀI CHÍNH'),
-                  for (var i = 0; i < taiChinh.length; i++) _item(_dieuHanh.length + i, taiChinh[i]),
-                ],
-                if (toChuc.isNotEmpty) ...[
-                  _groupLabel('TỔ CHỨC'),
-                  for (var i = 0; i < toChuc.length; i++) _item(_dieuHanh.length + taiChinh.length + i, toChuc[i]),
-                ],
-                _groupLabel('HỆ THỐNG'),
-                for (var i = 0; i < _heThong.length; i++) _item(_dieuHanh.length + taiChinh.length + toChuc.length + i, _heThong[i]),
-                const Spacer(),
-                if (user != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: Text(
-                      '${user.displayName}\n${user.role.roleLabel}',
-                      style: TextStyle(color: AppColors.webSidebarText.withValues(alpha: 0.75), fontSize: 11, height: 1.35),
+          Row(
+            children: [
+              Container(
+                width: 240,
+                color: AppColors.webSidebar,
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      child: Text('LT ARC', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
                     ),
-                  ),
-                _SidebarItem(
-                  icon: Icons.logout,
-                  label: 'Đăng xuất',
-                  selected: false,
-                  onTap: () => ref.read(authProvider.notifier).logout(),
+                    _groupLabel('ĐIỀU HÀNH'),
+                    for (var i = 0; i < _dieuHanh.length; i++) _item(i, _dieuHanh[i]),
+                    if (taiChinh.isNotEmpty) ...[
+                      _groupLabel('TÀI CHÍNH'),
+                      for (var i = 0; i < taiChinh.length; i++) _item(_dieuHanh.length + i, taiChinh[i]),
+                    ],
+                    if (toChuc.isNotEmpty) ...[
+                      _groupLabel('TỔ CHỨC'),
+                      for (var i = 0; i < toChuc.length; i++) _item(_dieuHanh.length + taiChinh.length + i, toChuc[i]),
+                    ],
+                    _groupLabel('HỆ THỐNG'),
+                    for (var i = 0; i < _heThong.length; i++) _item(_dieuHanh.length + taiChinh.length + toChuc.length + i, _heThong[i]),
+                    const Spacer(),
+                    if (user != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Text(
+                          '${user.displayName}\n${user.role.roleLabel}',
+                          style: TextStyle(color: AppColors.webSidebarText.withValues(alpha: 0.75), fontSize: 11, height: 1.35),
+                        ),
+                      ),
+                    _SidebarItem(
+                      icon: Icons.logout,
+                      label: 'Đăng xuất',
+                      selected: false,
+                      onTap: () => ref.read(authProvider.notifier).logout(),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Expanded(child: IndexedStack(index: _index, children: [for (final item in allItems) item.page])),
+            ],
           ),
-          Expanded(child: IndexedStack(index: _index, children: [for (final item in allItems) item.page])),
+          const Positioned(top: 16, right: 22, child: _ThemeToggle()),
         ],
       ),
     );
@@ -181,6 +187,64 @@ class _SidebarItem extends StatelessWidget {
                   color: selected ? Colors.white : AppColors.webSidebarText,
                   fontSize: 13.5,
                   fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Toggle sáng/tối nổi góc trên-phải — đúng `.theme-switch` trong
+/// LT-ARC-Web-UI_3.html (track bo tròn, thumb gradient vàng đồng trượt).
+class _ThemeToggle extends ConsumerWidget {
+  const _ThemeToggle();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(webThemeModeProvider);
+    final isDark = mode == ThemeMode.dark;
+    final c = context.colors;
+
+    return Tooltip(
+      message: 'Chuyển giao diện sáng / tối',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: () => ref.read(webThemeModeProvider.notifier).toggle(),
+        child: Container(
+          width: 56,
+          height: 30,
+          padding: const EdgeInsets.symmetric(horizontal: 7),
+          decoration: BoxDecoration(
+            color: c.muted,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: c.border),
+            boxShadow: [BoxShadow(color: c.shadowAmbientSoft, blurRadius: 3, offset: const Offset(0, 1))],
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Icon(Icons.dark_mode_outlined, size: 13, color: c.mutedFg),
+                  Icon(Icons.light_mode_outlined, size: 13, color: c.mutedFg),
+                ],
+              ),
+              AnimatedAlign(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                alignment: isDark ? Alignment.centerLeft : Alignment.centerRight,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.goldBright, c.gold]),
+                    boxShadow: [BoxShadow(color: c.shadowAmbient, blurRadius: 6, offset: const Offset(0, 2))],
+                  ),
                 ),
               ),
             ],

@@ -47,7 +47,7 @@ class IncomeTab extends ConsumerWidget {
             alignment: Alignment.centerRight,
             child: FilledButton.icon(
               onPressed: () => showDialog(context: context, builder: (_) => _IncomeDialog(projectId: projectId)),
-              style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+              style: FilledButton.styleFrom(backgroundColor: context.colors.fg, foregroundColor: Colors.white),
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Thêm khoản thu'),
             ),
@@ -90,7 +90,7 @@ class IncomeTab extends ConsumerWidget {
                                           ? (milestoneNames[p.contractMilestoneId] ?? 'Đợt thanh toán')
                                           : '—'),
                                 )),
-                                DataCell(Text('+${currency.format(p.amount)} ₫', style: const TextStyle(color: AppColors.webSuccess, fontWeight: FontWeight.w600))),
+                                DataCell(Text('+${currency.format(p.amount)} ₫', style: TextStyle(color: context.colors.success, fontWeight: FontWeight.w600))),
                               ],
                             ),
                         ],

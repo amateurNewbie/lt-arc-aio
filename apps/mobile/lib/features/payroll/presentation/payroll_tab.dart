@@ -59,6 +59,7 @@ class _PayrollTabState extends ConsumerState<PayrollTab> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final month = _monthKey(_selectedMonth);
     final recordsAsync = ref.watch(payrollMonthProvider(month));
     final employeesAsync = ref.watch(employeeListProvider);
@@ -87,15 +88,19 @@ class _PayrollTabState extends ConsumerState<PayrollTab> {
               children: [
                 ResponsiveStatRow(
                   children: [
-                    _StatCard(icon: Icons.account_balance_wallet_outlined, value: '${currency.format(totalFund)} ₫', label: 'Tổng quỹ lương tháng $month', color: AppColors.gold),
-                    _StatCard(icon: Icons.people_outline, value: '${records.length}', label: 'Nhân viên nhận lương', color: AppColors.gold),
-                    _StatCard(icon: Icons.check_circle_outline, value: '$paidCount', label: 'Đã thanh toán', color: AppColors.webSuccess),
-                    _StatCard(icon: Icons.hourglass_empty, value: '$unpaidCount', label: 'Chưa thanh toán', color: AppColors.webWarning),
+                    _StatCard(icon: Icons.account_balance_wallet_outlined, value: '${currency.format(totalFund)} ₫', label: 'Tổng quỹ lương tháng $month', color: c.gold),
+                    _StatCard(icon: Icons.people_outline, value: '${records.length}', label: 'Nhân viên nhận lương', color: c.gold),
+                    _StatCard(icon: Icons.check_circle_outline, value: '$paidCount', label: 'Đã thanh toán', color: c.success),
+                    _StatCard(icon: Icons.hourglass_empty, value: '$unpaidCount', label: 'Chưa thanh toán', color: c.warning),
                   ],
                 ),
                 const SizedBox(height: 20),
                 Container(
-                  decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: c.border),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -112,7 +117,7 @@ class _PayrollTabState extends ConsumerState<PayrollTab> {
                                   const SizedBox(height: 4),
                                   Text(
                                     'Tháng $month — Thực lãnh = Số công thực tế × Đơn giá lương ngày + Phụ cấp.',
-                                    style: TextStyle(fontSize: 12, color: AppColors.webMutedFg),
+                                    style: TextStyle(fontSize: 12, color: c.mutedFg),
                                   ),
                                 ],
                               ),
@@ -130,7 +135,7 @@ class _PayrollTabState extends ConsumerState<PayrollTab> {
                             if (canPay)
                               FilledButton.icon(
                                 onPressed: () => showPayrollPayDialog(context, month),
-                                style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                                style: FilledButton.styleFrom(backgroundColor: c.fg, foregroundColor: Colors.white),
                                 icon: const Icon(Icons.payments_outlined, size: 16),
                                 label: const Text('Trả lương'),
                               ),
@@ -199,8 +204,13 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
-      decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: c.border),
+      ),
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
@@ -217,7 +227,7 @@ class _StatCard extends StatelessWidget {
               children: [
                 Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
-                Text(label.toUpperCase(), style: TextStyle(fontSize: 10, letterSpacing: 0.3, color: AppColors.webMutedFg)),
+                Text(label.toUpperCase(), style: TextStyle(fontSize: 10, letterSpacing: 0.3, color: c.mutedFg)),
               ],
             ),
           ),

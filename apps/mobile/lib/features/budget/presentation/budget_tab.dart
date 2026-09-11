@@ -47,7 +47,7 @@ class BudgetTab extends ConsumerWidget {
                       const SizedBox(height: 4),
                       Text(
                         'Lập các dòng dự toán chi phí theo hạng mục.',
-                        style: TextStyle(fontSize: 12, color: AppColors.webMutedFg),
+                        style: TextStyle(fontSize: 12, color: context.colors.mutedFg),
                       ),
                     ],
                   ),
@@ -55,7 +55,7 @@ class BudgetTab extends ConsumerWidget {
                 if (canManage)
                   FilledButton.icon(
                     onPressed: () => showBudgetLineDialog(context, projectId),
-                    style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                    style: FilledButton.styleFrom(backgroundColor: context.colors.fg, foregroundColor: Colors.white),
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('Thêm dòng dự toán'),
                   ),
@@ -100,23 +100,24 @@ class BudgetTab extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppColors.webCardBg,
+                  gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [context.colors.cardGradTop, context.colors.cardGradBottom]),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.webBorder),
+                  border: Border.all(color: context.colors.border),
                 ),
                 child: Row(
                   children: [
                     Expanded(
-                      child: _metric('Giá trị hợp đồng / ngân sách', contractBudget == null ? '—' : '${currency.format(contractBudget)} ₫'),
+                      child: _metric(context, 'Giá trị hợp đồng / ngân sách', contractBudget == null ? '—' : '${currency.format(contractBudget)} ₫'),
                     ),
-                    Expanded(child: _metric('Tổng dự toán chi phí', '${currency.format(estimateTotal)} ₫')),
+                    Expanded(child: _metric(context, 'Tổng dự toán chi phí', '${currency.format(estimateTotal)} ₫')),
                     Expanded(
                       child: _metric(
+                        context,
                         'Lãi dự kiến theo dự toán',
                         expectedProfit == null ? '—' : '${expectedProfit >= 0 ? '+' : ''}${currency.format(expectedProfit)} ₫',
                         color: expectedProfit == null
                             ? null
-                            : (expectedProfit >= 0 ? AppColors.webSuccess : AppColors.webDestructive),
+                            : (expectedProfit >= 0 ? context.colors.success : context.colors.destructive),
                       ),
                     ),
                   ],
@@ -131,11 +132,11 @@ class BudgetTab extends ConsumerWidget {
     );
   }
 
-  Widget _metric(String label, String value, {Color? color}) {
+  Widget _metric(BuildContext context, String label, String value, {Color? color}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+        Text(label, style: TextStyle(fontSize: 12, color: context.colors.mutedFg)),
         const SizedBox(height: 4),
         Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: color)),
       ],

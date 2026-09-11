@@ -18,14 +18,15 @@ class AccountInfoTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).value;
+    final c = context.colors;
 
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.webCardBg,
+          gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.webBorder),
+          border: Border.all(color: c.border),
         ),
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -36,7 +37,7 @@ class AccountInfoTab extends ConsumerWidget {
             if (user != null)
               Text(
                 '${user.displayName} · ${user.email} · Vai trò: ${user.role.roleLabel}',
-                style: TextStyle(fontSize: 13, color: AppColors.webMutedFg),
+                style: TextStyle(fontSize: 13, color: c.mutedFg),
               ),
             const SizedBox(height: 20),
             OutlinedButton.icon(

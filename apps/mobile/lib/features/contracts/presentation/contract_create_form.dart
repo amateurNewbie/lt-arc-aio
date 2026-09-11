@@ -59,14 +59,17 @@ List<_MilestoneDraft> _templateFor(ProjectCategory type) =>
 
 String _previewCode(Project project) => 'HD-${project.code.replaceFirst(RegExp(r'^LT-'), '')}';
 
-InputDecoration _fieldDecoration({String? label, String? hint}) => InputDecoration(
-      labelText: label,
-      hintText: hint,
-      isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: AppColors.webBorder)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: AppColors.webBorder)),
-    );
+InputDecoration _fieldDecoration(BuildContext context, {String? label, String? hint}) {
+  final c = context.colors;
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: c.border)),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: c.border)),
+  );
+}
 
 /// Form khai báo HĐ mới — bám `LT-ARC-Web-UI_2.html` (#wcFormCard).
 /// Chọn dự án → bind loại (category) + giá trị (budget), vẫn cho sửa.
@@ -274,24 +277,26 @@ class _ContractCreateFormState extends ConsumerState<ContractCreateForm> {
     final canCreate = role == 'ADMIN' || role == 'DIRECTOR';
 
     if (!canCreate) {
+      final c = context.colors;
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.webCardBg,
+          gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.webBorder),
+          border: Border.all(color: c.border),
         ),
         child: const Text('Chỉ Quản trị và Giám đốc được tạo hợp đồng.'),
       );
     }
 
     final ratioOk = (_totalRatio - 100).abs() < 0.5;
+    final c = context.colors;
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.webCardBg,
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.webBorder),
+        border: Border.all(color: c.border),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -301,7 +306,7 @@ class _ContractCreateFormState extends ConsumerState<ContractCreateForm> {
           const SizedBox(height: 4),
           Text(
             'Nhập thông tin hợp đồng và khai báo các đợt thanh toán — tổng tỷ lệ các đợt phải bằng 100% trước khi lưu.',
-            style: TextStyle(fontSize: 12.5, color: AppColors.webMutedFg),
+            style: TextStyle(fontSize: 12.5, color: c.mutedFg),
           ),
           const SizedBox(height: 16),
           projectsAsync.when(
@@ -309,17 +314,17 @@ class _ContractCreateFormState extends ConsumerState<ContractCreateForm> {
               builder: (context, constraints) {
                 final wide = constraints.maxWidth >= 900;
                 final fields = [
-                  _projectField(projects),
+                  _projectField(context, projects),
                   TextField(
                     controller: _codeController,
                     readOnly: true,
-                    decoration: _fieldDecoration(label: 'Mã hợp đồng', hint: 'Tự sinh theo dự án khi lưu'),
+                    decoration: _fieldDecoration(context, label: 'Mã hợp đồng', hint: 'Tự sinh theo dự án khi lưu'),
                   ),
                   DropdownButtonFormField<ProjectCategory?>(
                     key: ValueKey(_type),
                     initialValue: _type,
                     isExpanded: true,
-                    decoration: _fieldDecoration(label: 'Loại hợp đồng'),
+                    decoration: _fieldDecoration(context, label: 'Loại hợp đồng'),
                     items: [
                       const DropdownMenuItem<ProjectCategory?>(value: null, child: Text('— Chọn loại —')),
                       for (final c in ProjectCategory.values)
@@ -331,7 +336,7 @@ class _ContractCreateFormState extends ConsumerState<ContractCreateForm> {
                     controller: _valueController,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-                    decoration: _fieldDecoration(label: 'Giá trị hợp đồng (₫)', hint: 'VD: 2.000.000.000'),
+                    decoration: _fieldDecoration(context, label: 'Giá trị hợp đồng (₫)', hint: 'VD: 2.000.000.000'),
                     onChanged: (_) {
                       _formatValueField();
                       setState(() {});
@@ -340,14 +345,14 @@ class _ContractCreateFormState extends ConsumerState<ContractCreateForm> {
                   InkWell(
                     onTap: () => _pickDate(signed: true),
                     child: InputDecorator(
-                      decoration: _fieldDecoration(label: 'Ngày ký'),
+                      decoration: _fieldDecoration(context, label: 'Ngày ký'),
                       child: Text(DateFormat('dd/MM/yyyy').format(_signedDate), style: const TextStyle(fontSize: 13)),
                     ),
                   ),
                   InkWell(
                     onTap: () => _pickDate(signed: false),
                     child: InputDecorator(
-                      decoration: _fieldDecoration(label: 'Hạn bàn giao dự kiến'),
+                      decoration: _fieldDecoration(context, label: 'Hạn bàn giao dự kiến'),
                       child: Text(
                         _dueDate == null ? '—' : DateFormat('dd/MM/yyyy').format(_dueDate!),
                         style: const TextStyle(fontSize: 13),
@@ -401,12 +406,12 @@ class _ContractCreateFormState extends ConsumerState<ContractCreateForm> {
             children: [
               OutlinedButton(
                 onPressed: () => _applyTemplate('design'),
-                style: OutlinedButton.styleFrom(backgroundColor: AppColors.webSecondaryBg, foregroundColor: AppColors.webSecondaryFg),
+                style: OutlinedButton.styleFrom(backgroundColor: c.secondary, foregroundColor: c.secondaryFg),
                 child: const Text('Mẫu Thiết kế 50/50'),
               ),
               OutlinedButton(
                 onPressed: () => _applyTemplate('build'),
-                style: OutlinedButton.styleFrom(backgroundColor: AppColors.webSecondaryBg, foregroundColor: AppColors.webSecondaryFg),
+                style: OutlinedButton.styleFrom(backgroundColor: c.secondary, foregroundColor: c.secondaryFg),
                 child: const Text('Mẫu Thi công (giữ 5% bảo hành)'),
               ),
               OutlinedButton(
@@ -416,18 +421,18 @@ class _ContractCreateFormState extends ConsumerState<ContractCreateForm> {
             ],
           ),
           const SizedBox(height: 12),
-          _milestonesTable(),
+          _milestonesTable(context),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Text('Tổng tỷ lệ: ', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg)),
+              Text('Tổng tỷ lệ: ', style: TextStyle(fontSize: 13, color: c.mutedFg)),
               Text(
                 '${_totalRatio.toStringAsFixed(_totalRatio == _totalRatio.roundToDouble() ? 0 : 1)}%',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: ratioOk ? AppColors.webSuccess : AppColors.webDestructive),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: ratioOk ? c.success : c.destructive),
               ),
               const SizedBox(width: 24),
-              Text('Tổng tiền phân bổ: ', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg)),
+              Text('Tổng tiền phân bổ: ', style: TextStyle(fontSize: 13, color: c.mutedFg)),
               Text('${_currency.format(_amountFor(_totalRatio))} ₫', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
             ],
           ),
@@ -436,11 +441,11 @@ class _ContractCreateFormState extends ConsumerState<ContractCreateForm> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
               decoration: BoxDecoration(
-                color: AppColors.webDestructive.withValues(alpha: 0.08),
+                color: c.destructive.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: AppColors.webDestructive.withValues(alpha: 0.25)),
+                border: Border.all(color: c.destructive.withValues(alpha: 0.25)),
               ),
-              child: Text(_warn!, style: const TextStyle(fontSize: 12.5, color: AppColors.webDestructive)),
+              child: Text(_warn!, style: TextStyle(fontSize: 12.5, color: c.destructive)),
             ),
           ],
           const SizedBox(height: 14),
@@ -451,7 +456,7 @@ class _ContractCreateFormState extends ConsumerState<ContractCreateForm> {
               const SizedBox(width: 8),
               FilledButton(
                 onPressed: _saving ? null : _submit,
-                style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                style: FilledButton.styleFrom(backgroundColor: c.fg, foregroundColor: Colors.white),
                 child: _saving
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Text('Lưu hợp đồng'),
@@ -463,14 +468,14 @@ class _ContractCreateFormState extends ConsumerState<ContractCreateForm> {
     );
   }
 
-  Widget _projectField(List<Project> projects) {
+  Widget _projectField(BuildContext context, List<Project> projects) {
     if (widget.fixedProjectId != null) {
       Project? p;
       for (final x in projects) {
         if (x.id == widget.fixedProjectId) p = x;
       }
       return InputDecorator(
-        decoration: _fieldDecoration(label: 'Dự án liên kết'),
+        decoration: _fieldDecoration(context, label: 'Dự án liên kết'),
         child: Text(p == null ? '—' : '${p.name} · ${p.code}', style: const TextStyle(fontSize: 13)),
       );
     }
@@ -479,7 +484,7 @@ class _ContractCreateFormState extends ConsumerState<ContractCreateForm> {
       key: ValueKey(_projectId),
       initialValue: _projectId,
       isExpanded: true,
-      decoration: _fieldDecoration(label: 'Dự án liên kết'),
+      decoration: _fieldDecoration(context, label: 'Dự án liên kết'),
       items: [
         const DropdownMenuItem<String?>(value: null, child: Text('— Chọn dự án —', overflow: TextOverflow.ellipsis)),
         for (final p in projects)
@@ -501,14 +506,14 @@ class _ContractCreateFormState extends ConsumerState<ContractCreateForm> {
     );
   }
 
-  Widget _milestonesTable() {
+  Widget _milestonesTable(BuildContext context) {
     if (_milestones.isEmpty) {
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         alignment: Alignment.center,
         child: Text(
           'Chưa có đợt thanh toán — chọn mẫu ở trên hoặc bấm "+ Thêm đợt".',
-          style: TextStyle(fontSize: 13, color: AppColors.webMutedFg),
+          style: TextStyle(fontSize: 13, color: context.colors.mutedFg),
         ),
       );
     }
@@ -585,7 +590,7 @@ class _ContractCreateFormState extends ConsumerState<ContractCreateForm> {
                 ),
                 DataCell(
                   IconButton(
-                    icon: const Icon(Icons.close, size: 16, color: AppColors.webDestructive),
+                    icon: Icon(Icons.close, size: 16, color: context.colors.destructive),
                     onPressed: () => setState(() => _milestones.removeAt(i)),
                   ),
                 ),

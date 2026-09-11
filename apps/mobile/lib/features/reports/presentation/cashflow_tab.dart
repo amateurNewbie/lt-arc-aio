@@ -40,7 +40,7 @@ class _CashflowTabState extends ConsumerState<CashflowTab> {
                 children: [
                   for (final f in funds)
                     _StatCard(icon: f.type == FundType.cash ? Icons.payments_outlined : Icons.account_balance_outlined, value: '${currency.format(f.balance)} ₫', label: f.name),
-                  _StatCard(icon: Icons.trending_up, value: '${currency.format(total)} ₫', label: 'Tổng số dư mọi quỹ', color: AppColors.webSuccess),
+                  _StatCard(icon: Icons.trending_up, value: '${currency.format(total)} ₫', label: 'Tổng số dư mọi quỹ', color: context.colors.success),
                 ],
               );
             },
@@ -49,7 +49,11 @@ class _CashflowTabState extends ConsumerState<CashflowTab> {
           ),
           const SizedBox(height: 20),
           Container(
-            decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [context.colors.cardGradTop, context.colors.cardGradBottom]),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: context.colors.border),
+            ),
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,8 +91,8 @@ class _CashflowTabState extends ConsumerState<CashflowTab> {
                         DataRow(cells: [
                           DataCell(Text(DateFormat('MM/yyyy').format(_month), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
                           DataCell(Text('${currency.format(report.openingBalance)} ₫', style: const TextStyle(fontSize: 13))),
-                          DataCell(Text('+${currency.format(report.totalInflow)} ₫', style: TextStyle(fontSize: 13, color: AppColors.webSuccess))),
-                          DataCell(Text('-${currency.format(report.totalOutflow)} ₫', style: TextStyle(fontSize: 13, color: AppColors.webDestructive))),
+                          DataCell(Text('+${currency.format(report.totalInflow)} ₫', style: TextStyle(fontSize: 13, color: context.colors.success))),
+                          DataCell(Text('-${currency.format(report.totalOutflow)} ₫', style: TextStyle(fontSize: 13, color: context.colors.destructive))),
                           DataCell(Text('${currency.format(report.closingBalance)} ₫', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
                         ]),
                       ],
@@ -122,9 +126,13 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColors.gold;
+    final c = color ?? context.colors.gold;
     return Container(
-      decoration: BoxDecoration(color: AppColors.webCardBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.webBorder)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [context.colors.cardGradTop, context.colors.cardGradBottom]),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: context.colors.border),
+      ),
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
@@ -141,7 +149,7 @@ class _StatCard extends StatelessWidget {
               children: [
                 Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
-                Text(label, style: TextStyle(fontSize: 11, color: AppColors.webMutedFg), overflow: TextOverflow.ellipsis),
+                Text(label, style: TextStyle(fontSize: 11, color: context.colors.mutedFg), overflow: TextOverflow.ellipsis),
               ],
             ),
           ),

@@ -254,6 +254,7 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final usersAsync = ref.watch(userListProvider);
     final leadsAsync = ref.watch(leadListProvider);
     final role = ref.watch(authProvider).value?.role;
@@ -293,7 +294,7 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
     ];
 
     return ColoredBox(
-      color: kIsWeb ? AppColors.webBackground : Theme.of(context).scaffoldBackgroundColor,
+      color: kIsWeb ? c.bg : Theme.of(context).scaffoldBackgroundColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -366,8 +367,8 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
           Container(
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
             decoration: BoxDecoration(
-              color: kIsWeb ? AppColors.webCardBg : Theme.of(context).scaffoldBackgroundColor,
-              border: Border(top: BorderSide(color: AppColors.webBorder.withValues(alpha: 0.85))),
+              color: kIsWeb ? c.card : Theme.of(context).scaffoldBackgroundColor,
+              border: Border(top: BorderSide(color: c.border.withValues(alpha: 0.85))),
             ),
             child: Align(
               alignment: Alignment.centerRight,
@@ -375,7 +376,7 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
                 if (!canManage) return const SizedBox.shrink();
                 return FilledButton(
                   onPressed: _saving ? null : (widget.isCreate ? _submitCreate : _submitUpdate),
-                  style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                  style: FilledButton.styleFrom(backgroundColor: c.fg, foregroundColor: Colors.white),
                   child: _saving
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : Text(widget.isCreate ? 'Tạo dự án' : 'Lưu thay đổi'),
@@ -395,6 +396,7 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
     required List<Lead> convertedLeads,
     required bool canManage,
   }) {
+    final c = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -535,9 +537,9 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage> with Sing
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.webSecondaryBg,
+              color: c.secondary,
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: AppColors.webBorder),
+              border: Border.all(color: c.border),
             ),
             child: const Text(
               'Các tab Dự toán / Công việc / Hạng mục / Thu / Chi phí sẽ mở sau khi bấm Tạo dự án (lưu hồ sơ trước).',
@@ -565,23 +567,24 @@ class _HeadChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.webSecondaryBg,
+        color: c.secondary,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.webBorder),
+        border: Border.all(color: c.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           CircleAvatar(
             radius: 12,
-            backgroundColor: AppColors.webForeground,
+            backgroundColor: c.fg,
             child: Text(_initials, style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600)),
           ),
           const SizedBox(width: 8),
-          Text('$label: ', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg)),
+          Text('$label: ', style: TextStyle(fontSize: 13, color: c.mutedFg)),
           Text(user.displayName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
         ],
       ),
@@ -597,6 +600,7 @@ class _ProjectTabs extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final taskCount = ref.watch(taskListProvider(projectId: projectId)).asData?.value.length;
     final workItemCount = ref.watch(workItemListProvider(projectId)).asData?.value.length;
     final incomeCount = ref.watch(projectPaymentListProvider(projectId)).asData?.value.length;
@@ -608,7 +612,7 @@ class _ProjectTabs extends ConsumerWidget {
     return TabBar(
       controller: controller,
       isScrollable: true,
-      labelColor: AppColors.webForeground,
+      labelColor: c.fg,
       tabs: [
         const Tab(text: 'Dự toán'),
         Tab(text: labeled('Hạng mục công việc', workItemCount)),
@@ -637,6 +641,7 @@ class _HeaderBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -679,7 +684,7 @@ class _HeaderBlock extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             '${project!.code} · ${project!.client}${project!.type != null ? ' · ${project!.type}' : ''}',
-            style: TextStyle(fontSize: 13, color: AppColors.webMutedFg),
+            style: TextStyle(fontSize: 13, color: c.mutedFg),
           ),
         ],
       ],
@@ -712,13 +717,14 @@ class _InfoBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.webCardBg,
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.webBorder),
+        border: Border.all(color: c.border),
       ),
       child: Wrap(
         spacing: 12,
@@ -788,6 +794,7 @@ class _KpiRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final pnlAsync = ref.watch(profitLossReportProvider());
     final receivablesAsync = ref.watch(receivableListProvider);
     final pnl = (pnlAsync.asData?.value ?? const <ProjectPnl>[]).where((p) => p.projectId == projectId).firstOrNull;
@@ -800,14 +807,14 @@ class _KpiRow extends ConsumerWidget {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.webCardBg,
+              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.webBorder),
+              border: Border.all(color: c.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(fontSize: 12, color: AppColors.webMutedFg)),
+                Text(label, style: TextStyle(fontSize: 12, color: c.mutedFg)),
                 const SizedBox(height: 4),
                 Text(value, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: valueColor)),
               ],
@@ -826,7 +833,7 @@ class _KpiRow extends ConsumerWidget {
         card(
           'Lãi/Lỗ',
           pnl != null ? formatCompactVnd(pnl.profit, showSign: true) : '—',
-          valueColor: pnl == null ? null : (pnl.profit >= 0 ? AppColors.webSuccess : AppColors.webDestructive),
+          valueColor: pnl == null ? null : (pnl.profit >= 0 ? c.success : c.destructive),
         ),
         card('Công nợ phải thu', formatCompactVnd(receivable)),
       ],
@@ -889,6 +896,7 @@ class _StageProgressEditor extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final templatesAsync = ref.watch(stageTemplateListProvider(activeOnly: true));
     final dateFmt = DateFormat('dd/MM/yyyy');
     final templates = templatesAsync.value ?? const <StageTemplate>[];
@@ -909,9 +917,9 @@ class _StageProgressEditor extends ConsumerWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.webCardBg,
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.webBorder),
+        border: Border.all(color: c.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -931,7 +939,7 @@ class _StageProgressEditor extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(
             'Theo dõi chi tiết tiến độ thi công & thiết kế của dự án.',
-            style: TextStyle(fontSize: 12, color: AppColors.webMutedFg),
+            style: TextStyle(fontSize: 12, color: c.mutedFg),
           ),
           if (templatesAsync.hasValue && templateKeys.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -950,7 +958,7 @@ class _StageProgressEditor extends ConsumerWidget {
           ],
           const SizedBox(height: 16),
           if (keys.isEmpty)
-            Text('Chưa có giai đoạn. Thêm từ mẫu hoặc tạo mới.', style: TextStyle(fontSize: 13, color: AppColors.webMutedFg))
+            Text('Chưa có giai đoạn. Thêm từ mẫu hoặc tạo mới.', style: TextStyle(fontSize: 13, color: c.mutedFg))
           else
             for (final key in keys) ...[
               Builder(
@@ -958,8 +966,8 @@ class _StageProgressEditor extends ConsumerWidget {
                   final stage = stages[key] ?? const ProjectStageProgress(progress: 0);
                   final overdue = _isOverdue(stage);
                   final barColor = stage.progress >= 100
-                      ? AppColors.webSuccess
-                      : (overdue ? AppColors.webDestructive : AppColors.gold);
+                      ? c.success
+                      : (overdue ? c.destructive : c.gold);
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Column(
@@ -977,7 +985,7 @@ class _StageProgressEditor extends ConsumerWidget {
                               overdue ? '${stage.progress}% · trễ kế hoạch' : '${stage.progress}%',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: overdue ? AppColors.webDestructive : AppColors.webMutedFg,
+                                color: overdue ? c.destructive : c.mutedFg,
                                 fontWeight: overdue ? FontWeight.w600 : null,
                               ),
                             ),
@@ -989,7 +997,7 @@ class _StageProgressEditor extends ConsumerWidget {
                                 stage.deadline != null ? dateFmt.format(stage.deadline!) : 'Deadline',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: overdue ? AppColors.webDestructive : null,
+                                  color: overdue ? c.destructive : null,
                                 ),
                               ),
                             ),
@@ -1012,7 +1020,7 @@ class _StageProgressEditor extends ConsumerWidget {
                           child: LinearProgressIndicator(
                             value: stage.progress / 100,
                             minHeight: 8,
-                            backgroundColor: AppColors.webMutedBg,
+                            backgroundColor: c.muted,
                             color: barColor,
                           ),
                         ),

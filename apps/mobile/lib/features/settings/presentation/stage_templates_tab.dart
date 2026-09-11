@@ -11,14 +11,17 @@ import '../data/stage_template_repository.dart';
 
 bool _canManageStageTemplates(String? role) => role == 'ADMIN' || role == 'DIRECTOR';
 
-InputDecoration _fieldDecoration({String? label, String? hint}) => InputDecoration(
-      labelText: label,
-      hintText: hint,
-      isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: AppColors.webBorder)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: AppColors.webBorder)),
-    );
+InputDecoration _fieldDecoration(BuildContext context, {String? label, String? hint}) {
+  final c = context.colors;
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: c.border)),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: c.border)),
+  );
+}
 
 /// Cài đặt mẫu giai đoạn dự án — list / thêm / sửa tên / xoá hoặc ngừng dùng.
 class StageTemplatesTab extends ConsumerStatefulWidget {
@@ -64,7 +67,7 @@ class _StageTemplatesTabState extends ConsumerState<StageTemplatesTab> {
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: _fieldDecoration(label: 'Tên giai đoạn'),
+          decoration: _fieldDecoration(ctx, label: 'Tên giai đoạn'),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Huỷ')),
@@ -94,7 +97,7 @@ class _StageTemplatesTabState extends ConsumerState<StageTemplatesTab> {
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Huỷ')),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.webDestructive),
+            style: FilledButton.styleFrom(backgroundColor: ctx.colors.destructive),
             child: const Text('Xoá'),
           ),
         ],
@@ -135,13 +138,13 @@ class _StageTemplatesTabState extends ConsumerState<StageTemplatesTab> {
               Expanded(
                 child: TextField(
                   controller: _nameController,
-                  decoration: _fieldDecoration(label: 'Tên giai đoạn', hint: 'VD: Thiết kế nội thất'),
+                  decoration: _fieldDecoration(context, label: 'Tên giai đoạn', hint: 'VD: Thiết kế nội thất'),
                 ),
               ),
               const SizedBox(width: 12),
               FilledButton(
                 onPressed: _saving ? null : _submit,
-                style: FilledButton.styleFrom(backgroundColor: AppColors.webForeground, foregroundColor: Colors.white),
+                style: FilledButton.styleFrom(backgroundColor: context.colors.fg, foregroundColor: Colors.white),
                 child: _saving
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Text('Thêm'),
@@ -154,12 +157,13 @@ class _StageTemplatesTabState extends ConsumerState<StageTemplatesTab> {
           templatesAsync.when(
             data: (templates) {
               if (templates.isEmpty) return const Text('Chưa có mẫu giai đoạn nào');
+              final c = context.colors;
               return Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: AppColors.webCardBg,
+                  gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [c.cardGradTop, c.cardGradBottom]),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.webBorder),
+                  border: Border.all(color: c.border),
                 ),
                 padding: const EdgeInsets.all(12),
                 child: SingleChildScrollView(
@@ -180,7 +184,7 @@ class _StageTemplatesTabState extends ConsumerState<StageTemplatesTab> {
                         DataRow(
                           cells: [
                             DataCell(Text(t.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-                            DataCell(Text(t.key, style: TextStyle(fontSize: 12, color: AppColors.webMutedFg))),
+                            DataCell(Text(t.key, style: TextStyle(fontSize: 12, color: c.mutedFg))),
                             DataCell(Text('${t.sortOrder}', style: const TextStyle(fontSize: 13))),
                             DataCell(
                               WebBadge(
@@ -218,7 +222,7 @@ class _StageTemplatesTabState extends ConsumerState<StageTemplatesTab> {
                                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                       padding: const EdgeInsets.symmetric(horizontal: 8),
                                       minimumSize: Size.zero,
-                                      foregroundColor: AppColors.webDestructive,
+                                      foregroundColor: c.destructive,
                                     ),
                                     onPressed: () => _confirmDelete(t),
                                     child: const Text('Xoá', style: TextStyle(fontSize: 12)),

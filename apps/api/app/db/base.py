@@ -9,6 +9,7 @@ from app.models.company_settings import CompanySettings  # noqa: F401
 from app.models.contract import Contract, ContractMilestone  # noqa: F401
 from app.models.cost_category import CostCategory  # noqa: F401
 from app.models.department import Department  # noqa: F401
+from app.models.device_token import DeviceToken  # noqa: F401
 from app.models.employee import Employee  # noqa: F401
 from app.models.file_asset import FileAsset  # noqa: F401
 from app.models.fund import CashLedgerEntry, FundAccount  # noqa: F401

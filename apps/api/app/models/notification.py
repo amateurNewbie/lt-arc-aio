@@ -15,3 +15,9 @@ class Notification(SQLModel, table=True):
     message: str
     read: bool = Field(default=False, index=True)
     created_at: datetime = Field(default_factory=utcnow, index=True)
+
+    # Lưu trữ dạng chuỗi tự do (xem `NotificationKind`), không phải cột Enum,
+    # để mở rộng thêm loại thông báo sau này không cần migration ALTER TYPE.
+    kind: str | None = Field(default=None, index=True)
+    entity_type: str | None = Field(default=None)
+    entity_id: UUID | None = Field(default=None)

@@ -59,6 +59,11 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
 
+      - name: Sync FCM service-account secret to server .env
+        run: |
+          ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "cd /opt/lt-arc && touch .env && sed -i '/^FCM_SERVICE_ACCOUNT_JSON_BASE64=/d' .env && echo 'FCM_SERVICE_ACCOUNT_JSON_BASE64=${{ secrets.FCM_SERVICE_ACCOUNT_JSON_BASE64 }}' >> .env"
+
       - name: Pull new image and recreate API container
         run: |
           ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \

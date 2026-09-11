@@ -107,3 +107,23 @@ class AllocationBasis(StrEnum):
 
     REVENUE = "REVENUE"
     EQUAL = "EQUAL"
+
+
+class DevicePlatform(StrEnum):
+    ANDROID = "ANDROID"
+    IOS = "IOS"
+
+
+class NotificationKind(StrEnum):
+    """Loại thông báo — dùng để FE deep-link đúng trang khi bấm vào push.
+
+    Không map thẳng sang cột DB kiểu Enum (xem `Notification.kind`) vì danh
+    sách này sẽ còn mở rộng (giao task, đổi trạng thái lead...) và Postgres
+    ENUM đòi ALTER TYPE khá phiền mỗi lần thêm giá trị.
+    """
+
+    TASK_DUE = "TASK_DUE"
+    CONTRACT_DUE = "CONTRACT_DUE"
+    OVERHEAD_REMINDER = "OVERHEAD_REMINDER"
+    TASK_ASSIGNED = "TASK_ASSIGNED"
+    LEAD_STATUS_CHANGED = "LEAD_STATUS_CHANGED"

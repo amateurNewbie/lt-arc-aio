@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "664527586616",
+    "project_id": "ltarc-fcm",
+    "storage_bucket": "ltarc-fcm.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:664527586616:android:38df6499a0c28b8a8c2dcd",
+        "android_client_info": {
+          "package_name": "com.ltarc.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVOlQAKjIM5qxehIcfma9et5-RqRIc-yU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

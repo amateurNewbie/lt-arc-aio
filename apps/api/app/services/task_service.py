@@ -6,12 +6,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.clock import utcnow
 from app.core.permissions import Role
-from app.models.enums import TaskPriority, TaskStatus, WorkItemStatus
+from app.models.enums import NotificationKind, TaskPriority, TaskStatus, WorkItemStatus
 from app.models.project import Project, ProjectDepartmentHead, ProjectMember
 from app.models.task import Task
 from app.models.user import User
 from app.models.work_item import WorkItem
 from app.services.activity_service import log_activity
+from app.services.notification_service import create_notification
 
 
 class IncompleteSubtasksError(Exception):
@@ -65,6 +66,17 @@ async def create_task(
     await session.commit()
     await session.refresh(task)
     await log_activity(session, icon="list-plus", title=f'Tạo công việc "{title}"', user_id=actor.id, project_id=project_id)
+
+    if assignee_id is not None and assignee_id != actor.id:
+        await create_notification(
+            session,
+            user_id=assignee_id,
+            title="Công việc mới được giao",
+            message=f'Bạn được giao công việc "{title}"',
+            kind=NotificationKind.TASK_ASSIGNED,
+            entity_type="task",
+            entity_id=task.id,
+        )
     return task
 
 

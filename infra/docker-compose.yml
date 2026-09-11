@@ -32,6 +32,9 @@ services:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/lt_arc
       JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-string}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      # Base64 file service-account JSON của Firebase Admin SDK (project riêng cho FCM) —
+      # để trống thì gửi push tự bỏ qua, xem `app/core/firebase.py`.
+      FCM_SERVICE_ACCOUNT_JSON_BASE64: ${FCM_SERVICE_ACCOUNT_JSON_BASE64:-}
     ports:
       - "127.0.0.1:8000:8000"
     volumes:

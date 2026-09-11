@@ -4,9 +4,11 @@ from uuid import UUID
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core import firebase
 from app.core.clock import utcnow
 from app.models.contract import Contract, ContractMilestone
-from app.models.enums import MilestoneStatus, TaskStatus
+from app.models.device_token import DeviceToken
+from app.models.enums import DevicePlatform, MilestoneStatus, NotificationKind, TaskStatus
 from app.models.notification import Notification
 from app.models.overhead import OverheadAllocation, OverheadCost
 from app.models.project import Project
@@ -14,12 +16,81 @@ from app.models.task import Task
 from app.models.user import User
 
 
-async def create_notification(session: AsyncSession, *, user_id: UUID, title: str, message: str) -> Notification:
-    notification = Notification(user_id=user_id, title=title, message=message)
+async def create_notification(
+    session: AsyncSession,
+    *,
+    user_id: UUID,
+    title: str,
+    message: str,
+    kind: NotificationKind | None = None,
+    entity_type: str | None = None,
+    entity_id: UUID | None = None,
+) -> Notification:
+    notification = Notification(
+        user_id=user_id,
+        title=title,
+        message=message,
+        kind=kind.value if kind else None,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
     session.add(notification)
     await session.commit()
     await session.refresh(notification)
+
+    await _send_push(session, notification)
     return notification
+
+
+async def _send_push(session: AsyncSession, notification: Notification) -> None:
+    """Best-effort — lỗi gửi FCM không được làm hỏng việc tạo `Notification`."""
+    result = await session.exec(select(DeviceToken).where(DeviceToken.user_id == notification.user_id))
+    tokens = list(result.all())
+    if not tokens:
+        return
+
+    data = {"kind": notification.kind or "", "entity_type": notification.entity_type or "", "entity_id": str(notification.entity_id or "")}
+    invalid = firebase.send_push(tokens=[t.fcm_token for t in tokens], title=notification.title, message=notification.message, data=data)
+    if invalid:
+        for token in tokens:
+            if token.fcm_token in invalid:
+                await session.delete(token)
+        await session.commit()
+
+
+async def register_device(session: AsyncSession, *, user: User, fcm_token: str, platform: DevicePlatform) -> DeviceToken:
+    """Đăng ký/refresh token FCM của thiết bị. Upsert theo `fcm_token` — cùng
+    token đăng ký lại (kể cả sau khi đổi user do logout/login máy dùng chung)
+    sẽ cập nhật thay vì tạo trùng."""
+    existing = (await session.exec(select(DeviceToken).where(DeviceToken.fcm_token == fcm_token))).first()
+    if existing is not None:
+        existing.user_id = user.id
+        existing.platform = platform
+        existing.last_seen_at = utcnow()
+        session.add(existing)
+        await session.commit()
+        await session.refresh(existing)
+        return existing
+
+    device = DeviceToken(user_id=user.id, fcm_token=fcm_token, platform=platform)
+    session.add(device)
+    await session.commit()
+    await session.refresh(device)
+    return device
+
+
+async def unregister_device(session: AsyncSession, *, user: User, fcm_token: str) -> None:
+    """Gọi khi logout — idempotent, không lỗi nếu token không tồn tại/đã bị xoá.
+
+    Scope theo `user_id` để 1 user không thể xoá token của user khác dù biết
+    được giá trị token (dù token FCM vốn không đoán được, đây là phòng thủ thêm).
+    """
+    existing = (
+        await session.exec(select(DeviceToken).where(DeviceToken.fcm_token == fcm_token, DeviceToken.user_id == user.id))
+    ).first()
+    if existing is not None:
+        await session.delete(existing)
+        await session.commit()
 
 
 async def list_for_user(session: AsyncSession, user: User, unread_only: bool = False) -> list[Notification]:
@@ -66,6 +137,9 @@ async def run_daily_reminders(session: AsyncSession) -> int:
             user_id=task.assignee_id,
             title="Sắp đến hạn",
             message=f'Công việc "{task.title}" sẽ đến hạn vào {task_due.strftime("%d/%m/%Y")}',
+            kind=NotificationKind.TASK_DUE,
+            entity_type="task",
+            entity_id=task.id,
         )
         created += 1
 
@@ -85,6 +159,9 @@ async def run_daily_reminders(session: AsyncSession) -> int:
                 user_id=project.manager_id,
                 title="Công nợ sắp đến hạn",
                 message=f'Đợt "{milestone.name}" của hợp đồng {contract.code} sắp đến hạn thu',
+                kind=NotificationKind.CONTRACT_DUE,
+                entity_type="contract",
+                entity_id=contract.id,
             )
             created += 1
 
@@ -101,6 +178,7 @@ async def run_daily_reminders(session: AsyncSession) -> int:
                     user_id=admin.id,
                     title="Nhắc chạy phân bổ chi phí chung",
                     message=f"Chi phí chung tháng {month} chưa được phân bổ vào P&L",
+                    kind=NotificationKind.OVERHEAD_REMINDER,
                 )
                 created += 1
 

@@ -10,3 +10,6 @@ class NotificationRead(SQLModel):
     message: str
     read: bool
     created_at: datetime
+    kind: str | None
+    entity_type: str | None
+    entity_id: UUID | None

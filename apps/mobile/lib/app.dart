@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/i18n/app_localizations.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/notifications/application/push_notification_provider.dart';
 
 class App extends ConsumerWidget {
   const App({super.key});
@@ -12,6 +13,7 @@ class App extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(goRouterProvider);
+    ref.watch(pushNotificationsProvider);
 
     return MaterialApp.router(
       title: 'LT ARC',

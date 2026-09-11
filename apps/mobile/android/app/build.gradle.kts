@@ -5,6 +5,8 @@ plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // FCM (push notification) — cần google-services.json ở thư mục này (app/).
+    id("com.google.gms.google-services")
 }
 
 // CI (build-android.yml) ghi file này từ secret ANDROID_KEYSTORE_BASE64/*_PASSWORD/*_ALIAS
@@ -26,6 +28,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // flutter_local_notifications (hiển thị push khi app đang mở) đòi hỏi bật
+        // desugaring để dùng java.time trên API < 26.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -71,4 +76,8 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

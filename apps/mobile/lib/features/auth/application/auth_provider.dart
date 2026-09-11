@@ -1,7 +1,10 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/network/session_events.dart';
+import '../../notifications/application/notification_provider.dart';
 import '../data/auth_repository.dart';
 
 part 'auth_provider.g.dart';
@@ -30,6 +33,19 @@ class Auth extends _$Auth {
   }
 
   Future<void> logout() async {
+    // Huỷ đăng ký token FCM TRƯỚC khi xoá SecureStorage — nếu làm sau,
+    // request unregister sẽ không còn access token để đính kèm Authorization.
+    if (!kIsWeb) {
+      try {
+        final token = await FirebaseMessaging.instance.getToken();
+        if (token != null) {
+          await ref.read(notificationRepositoryProvider).unregisterDevice(token);
+        }
+      } catch (_) {
+        // best-effort — lỗi huỷ token không được chặn luồng logout.
+      }
+    }
+
     await ref.read(authRepositoryProvider).logout();
     state = const AsyncData(null);
   }

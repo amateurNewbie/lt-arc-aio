@@ -19,6 +19,9 @@ dependencies:
   file_picker: ^8.1.6
   intl: any
   google_fonts: ^6.2.1
+  firebase_core: ^3.8.1
+  firebase_messaging: ^15.1.6
+  flutter_local_notifications: ^18.0.1
 
 dev_dependencies:
   flutter_test:

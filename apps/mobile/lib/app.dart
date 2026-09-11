@@ -6,6 +6,7 @@ import 'core/i18n/app_localizations.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_mode_provider.dart';
+import 'features/notifications/application/push_notification_provider.dart';
 
 class App extends ConsumerWidget {
   const App({super.key});
@@ -14,6 +15,7 @@ class App extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(goRouterProvider);
     final webThemeMode = ref.watch(webThemeModeProvider);
+    ref.watch(pushNotificationsProvider);
 
     return MaterialApp.router(
       title: 'LT ARC',

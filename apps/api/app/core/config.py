@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     failed_login_lockout_minutes: int = 15
     idle_logout_hours: int = 24
 
+    # Nội dung file service-account JSON (Firebase Admin SDK), base64-encode để
+    # tránh lỗi escape ký tự xuống dòng/dấu ngoặc kép khi đặt trong biến môi
+    # trường. Để trống ở local/test — khi đó gửi push sẽ tự bỏ qua (log warning)
+    # thay vì lỗi, vì repo test không cấu hình Firebase.
+    fcm_service_account_json_base64: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

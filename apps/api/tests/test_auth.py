@@ -56,6 +56,38 @@ async def test_me_requires_token(client: AsyncClient) -> None:
     assert response.status_code == 401
 
 
+async def test_refresh_issues_new_token_pair(client: AsyncClient, session: AsyncSession) -> None:
+    """FE gọi ngầm khi access token hết hạn — đổi refresh_token lấy cặp mới, không bắt đăng nhập lại."""
+    await create_user(session, email="refresh1@ltarc.vn", password="Secret123!", role=Role.EMPLOYEE)
+
+    login = await client.post("/api/auth/login", json={"email": "refresh1@ltarc.vn", "password": "Secret123!"})
+    refresh_token = login.json()["refresh_token"]
+
+    refreshed = await client.post("/api/auth/refresh", json={"refresh_token": refresh_token})
+    assert refreshed.status_code == 200
+    body = refreshed.json()
+    assert "access_token" in body and "refresh_token" in body
+
+    me = await client.get("/api/auth/me", headers={"Authorization": f"Bearer {body['access_token']}"})
+    assert me.status_code == 200
+
+
+async def test_refresh_rejects_access_token(client: AsyncClient, session: AsyncSession) -> None:
+    """Không cho dùng access_token giả làm refresh_token (khác `type` claim)."""
+    await create_user(session, email="refresh2@ltarc.vn", password="Secret123!", role=Role.EMPLOYEE)
+
+    login = await client.post("/api/auth/login", json={"email": "refresh2@ltarc.vn", "password": "Secret123!"})
+    access_token = login.json()["access_token"]
+
+    resp = await client.post("/api/auth/refresh", json={"refresh_token": access_token})
+    assert resp.status_code == 401
+
+
+async def test_refresh_rejects_garbage_token(client: AsyncClient) -> None:
+    resp = await client.post("/api/auth/refresh", json={"refresh_token": "not-a-real-token"})
+    assert resp.status_code == 401
+
+
 async def test_grant_permission_all_scope_grants_immediately(session: AsyncSession) -> None:
     admin = await create_user(session, email="admin2@ltarc.vn", password="x", role=Role.ADMIN)
     employee = await create_user(session, email="d@ltarc.vn", password="x", role=Role.EMPLOYEE)

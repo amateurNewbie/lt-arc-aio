@@ -49,6 +49,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -58,6 +61,19 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync docker-compose.yml to server
+        # Trước đây job này không checkout repo nên không có bước nào đồng bộ
+        # infra/docker-compose.yml lên server — sửa compose file trong repo (vd
+        # thêm biến môi trường mới) không bao giờ tới được server. scp đè lại
+        # mỗi lần deploy để 2 bên luôn khớp nhau.
+        run: |
+          scp infra/docker-compose.yml "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/lt-arc/docker-compose.yml"
+
+      - name: Sync FCM service-account secret to server .env
+        run: |
+          ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "cd /opt/lt-arc && touch .env && sed -i '/^FCM_SERVICE_ACCOUNT_JSON_BASE64=/d' .env && echo 'FCM_SERVICE_ACCOUNT_JSON_BASE64=${{ secrets.FCM_SERVICE_ACCOUNT_JSON_BASE64 }}' >> .env"
 
       - name: Pull new image and recreate API container
         run: |

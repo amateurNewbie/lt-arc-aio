@@ -16,6 +16,10 @@ class TokenResponse(SQLModel):
     token_type: str = "bearer"
 
 
+class RefreshRequest(SQLModel):
+    refresh_token: str
+
+
 class MeResponse(SQLModel):
     id: UUID
     email: str

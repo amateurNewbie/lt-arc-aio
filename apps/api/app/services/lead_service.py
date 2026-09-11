@@ -4,12 +4,22 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.permissions import Role
-from app.models.enums import LeadStatus, ProjectCategory
+from app.models.enums import LeadStatus, NotificationKind, ProjectCategory
 from app.models.lead import Lead
 from app.models.lead_status_history import LeadStatusHistory
 from app.models.user import User
 from app.services.activity_service import log_activity
+from app.services.notification_service import create_notification
 from app.services.project_service import create_project
+
+# Nhãn tiếng Việt khớp với FE (`lead_repository.dart`) — dùng cho nội dung push.
+_STATUS_LABELS: dict[LeadStatus, str] = {
+    LeadStatus.NEW: "Mới",
+    LeadStatus.CONSULTING: "Đang tư vấn",
+    LeadStatus.QUOTED: "Đã báo giá",
+    LeadStatus.CONVERTED: "Đã chốt",
+    LeadStatus.REJECTED: "Từ chối",
+}
 
 
 class LeadAlreadyConvertedError(Exception):
@@ -112,6 +122,17 @@ async def update_lead_status(
         title=f"Khách hàng tiềm năng {lead.name}: {old_status} → {status}",
         user_id=actor.id,
     )
+
+    if actor.id != lead.owner_id:
+        await create_notification(
+            session,
+            user_id=lead.owner_id,
+            title="Khách hàng tiềm năng đổi trạng thái",
+            message=f'"{lead.name}": {_STATUS_LABELS[old_status]} → {_STATUS_LABELS[status]}',
+            kind=NotificationKind.LEAD_STATUS_CHANGED,
+            entity_type="lead",
+            entity_id=lead.id,
+        )
     return lead
 
 

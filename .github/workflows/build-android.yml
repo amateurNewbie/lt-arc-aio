@@ -48,7 +48,10 @@ jobs:
           EOF
 
       - name: Build APK
-        run: flutter build apk --release --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}
+        # --build-number tăng dần theo run_number của workflow — mỗi lần build ra
+        # versionCode mới, cài đè lên bản cũ trên máy test không bị Android chặn
+        # (versionCode trùng bản đã cài sẽ báo lỗi "App not installed").
+        run: flutter build apk --release --build-number=${{ github.run_number }} --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

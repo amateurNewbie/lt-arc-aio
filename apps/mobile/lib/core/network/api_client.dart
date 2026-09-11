@@ -29,6 +29,38 @@ class ApiClient {
 
   bool get isPreviewActive => _previewToken != null;
 
+  /// Gộp các lần refresh xảy ra đồng thời (nhiều request 401 cùng lúc) thành
+  /// 1 lệnh gọi `/api/auth/refresh` duy nhất — request sau chờ chung kết quả
+  /// thay vì mỗi request tự refresh, dễ dính race đá nhau (refresh token
+  /// dùng 1 lần bị xoay, request 2 gửi refresh token cũ đã hết hiệu lực).
+  Future<String?>? _refreshInFlight;
+
+  Future<String?> _refreshAccessToken() {
+    return _refreshInFlight ??= _doRefresh().whenComplete(() => _refreshInFlight = null);
+  }
+
+  /// `null` = refresh_token không còn hợp lệ → phải đăng xuất. Ném lỗi nếu là
+  /// sự cố tạm thời (mất mạng, server lỗi) — trường hợp đó KHÔNG được coi là
+  /// hết phiên, để lần gọi API kế tiếp còn có cơ hội thử lại.
+  Future<String?> _doRefresh() async {
+    final refreshToken = await SecureStorage.readRefreshToken();
+    if (refreshToken == null) return null;
+
+    // Dio riêng, không qua interceptor của `dio` chính — tránh đệ quy và tránh
+    // đính kèm access token cũ (không cần thiết, endpoint refresh không đọc nó).
+    final plainDio = Dio(BaseOptions(baseUrl: dio.options.baseUrl));
+    try {
+      final response = await plainDio.post('/api/auth/refresh', data: {'refresh_token': refreshToken});
+      final newAccessToken = response.data['access_token'] as String;
+      final newRefreshToken = response.data['refresh_token'] as String;
+      await SecureStorage.saveTokens(accessToken: newAccessToken, refreshToken: newRefreshToken);
+      return newAccessToken;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) return null;
+      rethrow;
+    }
+  }
+
   static ApiClient create() {
     final dio = Dio(BaseOptions(baseUrl: _defaultBaseUrl()));
     final client = ApiClient._(dio);
@@ -43,11 +75,41 @@ class ApiClient {
           handler.next(options);
         },
         onError: (error, handler) async {
-          if (error.response?.statusCode == 401 && !client.isPreviewActive) {
+          final isUnauthorized = error.response?.statusCode == 401;
+          final alreadyRetried = error.requestOptions.extra['retried'] == true;
+
+          // Preview mode dùng token riêng, không liên quan access/refresh
+          // token thật — 401 ở đó là do hết quyền xem thử, không phải hết phiên.
+          if (!isUnauthorized || client.isPreviewActive || alreadyRetried) {
+            handler.next(error);
+            return;
+          }
+
+          String? newAccessToken;
+          try {
+            newAccessToken = await client._refreshAccessToken();
+          } catch (_) {
+            // Lỗi tạm thời khi refresh — giữ nguyên phiên, trả lỗi gốc cho caller.
+            handler.next(error);
+            return;
+          }
+
+          if (newAccessToken == null) {
             await SecureStorage.clear();
             SessionEvents.instance.notifyUnauthorized();
+            handler.next(error);
+            return;
           }
-          handler.next(error);
+
+          try {
+            final retryOptions = error.requestOptions;
+            retryOptions.headers['Authorization'] = 'Bearer $newAccessToken';
+            retryOptions.extra['retried'] = true;
+            final response = await dio.fetch(retryOptions);
+            handler.resolve(response);
+          } on DioException catch (e) {
+            handler.next(e);
+          }
         },
       ),
     );

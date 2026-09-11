@@ -1,11 +1,13 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.deps import get_current_user, get_session, require_roles
 from app.core.permissions import PermissionGroup, Role
-from app.core.security import create_access_token, create_refresh_token
+from app.core.security import TokenError, create_access_token, create_refresh_token, decode_token_payload
 from app.models.user import User
-from app.schemas.auth import LoginRequest, MeResponse, PreviewRoleRequest, PreviewRoleResponse, TokenResponse
+from app.schemas.auth import LoginRequest, MeResponse, PreviewRoleRequest, PreviewRoleResponse, RefreshRequest, TokenResponse
 from app.services.auth_service import AccountLockedError, InvalidCredentialsError, authenticate
 from app.services.permission_service import has_permission
 
@@ -23,6 +25,29 @@ async def login(payload: LoginRequest, session: AsyncSession = Depends(get_sessi
             status.HTTP_423_LOCKED,
             f"Account locked until {exc.locked_until.isoformat()}",
         ) from exc
+
+    return TokenResponse(
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id),
+    )
+
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh_endpoint(payload: RefreshRequest, session: AsyncSession = Depends(get_session)) -> TokenResponse:
+    """Đổi refresh_token lấy cặp access/refresh mới — FE tự gọi ngầm khi access
+    token hết hạn (401) thay vì bắt đăng nhập lại ngay. Xoay cả refresh_token
+    (không chỉ access) để phiên còn hoạt động thì không bao giờ tự hết hạn
+    trong lúc dùng, chỉ hết khi thật sự không mở app trong `refresh_token_expire_days`.
+    """
+    try:
+        token_payload = decode_token_payload(payload.refresh_token, expected_type="refresh")
+        user_id = UUID(token_payload["sub"])
+    except (TokenError, KeyError, ValueError) as exc:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired refresh token") from exc
+
+    user = await session.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User no longer exists")
 
     return TokenResponse(
         access_token=create_access_token(user.id),
